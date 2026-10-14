@@ -1,0 +1,56 @@
+{
+  "label": "depth20",
+  "address": "20b5221b9872696e90c1bfc24fe6bec49df05c9126c3982ec0283b89901f8b4f",
+  "concurrencyOk": true,
+  "leaks": [],
+  "results": [
+    {
+      "circuit": "propose",
+      "proveMs": 2472.655221000001,
+      "totalMs": 23619.160731000004,
+      "blockHeight": 84
+    },
+    {
+      "circuit": "approve",
+      "proveMs": 2452.223939999996,
+      "totalMs": 24022.587811000005,
+      "blockHeight": 88
+    },
+    {
+      "circuit": "execute",
+      "proveMs": 2331.011990999992,
+      "totalMs": 24026.538837999993,
+      "blockHeight": 96
+    },
+    {
+      "circuit": "submitFlag",
+      "proveMs": 12314.067595999979,
+      "totalMs": 29373.801330000046,
+      "blockHeight": 148
+    },
+    {
+      "circuit": "submitFlag (stale-state B)",
+      "proveMs": 5786.1433909999905,
+      "totalMs": 23601.599990000017,
+      "blockHeight": 152
+    },
+    {
+      "circuit": "submitFlag (stale-state C)",
+      "proveMs": 5445.454037000018,
+      "totalMs": 24030.398178000003,
+      "blockHeight": 156
+    },
+    {
+      "circuit": "attestCorroboration3",
+      "proveMs": 8124.002131999994,
+      "totalMs": 30605.251247000007,
+      "blockHeight": 161
+    },
+    {
+      "circuit": "revokeFlag",
+      "proveMs": 4379.297041000042,
+      "totalMs": 23982.465274000017,
+      "blockHeight": 165
+    }
+  ]
+}
