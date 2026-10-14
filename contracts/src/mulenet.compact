@@ -1,0 +1,70 @@
+// MuleNet — private cross-institution mule-account corroboration.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Spec: docs/ARCHITECTURE.md §6, with the design decisions in PLAN.md §1:
+//   - flag leaves carry no index; revocation derives the index from the Merkle path
+//   - anonymous per-epoch quotas on flags and revocations
+//   - range checks on governance parameters; proposal expiry on approve
+
+pragma language_version >= 0.22 && <= 0.23;
+import CompactStandardLibrary;
+
+// ───────────────────────── Types ─────────────────────────
+
+export struct Attestation {
+  epoch: Uint<32>;
+  k: Uint<8>;
+  typology: Uint<8>;
+  escalationCtHash: Bytes<32>;
+  querierTag: Bytes<32>;
+}
+
+// kind: 1=RegisterInstitution 2=RotateMembership 3=SetCorroborationK 4=AuthorizeDisclosure 5=SetTtl
+export struct Proposal {
+  kind: Uint<8>;
+  payload: Bytes<32>;
+  approvals: Uint<8>;
+  executed: Boolean;
+  createdEpoch: Uint<32>;
+}
+
+export struct FlagSlot {
+  pseudonym: Bytes<32>;
+  epoch: Uint<32>;
+  ctHash: Bytes<32>;
+  path: MerkleTreePath<20, Bytes<32>>;
+}
+
+// ───────────────────────── Ledger ─────────────────────────
+
+export ledger guardians: HistoricMerkleTree<4, Bytes<32>>;
+export sealed ledger guardianThreshold: Uint<8>;
+export ledger membershipGen: Uint<32>;
+export ledger institutions: HistoricMerkleTree<6, Bytes<32>>;
+export ledger corroborationK: Uint<8>;
+
+export ledger flags: HistoricMerkleTree<20, Bytes<32>>;
+export ledger flagCount: Counter;
+export ledger flagNullifiers: Set<Bytes<32>>;
+export ledger quotaNullifiers: Set<Bytes<32>>;
+export ledger revocationCount: Counter;
+export sealed ledger flagQuota: Uint<16>;
+export sealed ledger revokeQuota: Uint<16>;
+
+export ledger currentEpoch: Uint<32>;
+export ledger nextEpochAt: Uint<64>;
+export sealed ledger epochLength: Uint<64>;
+export ledger epochTtl: Uint<32>;
+
+export ledger attestations: Map<Bytes<32>, Attestation>;
+export ledger attestationCount: Counter;
+
+export ledger proposals: Map<Bytes<32>, Proposal>;
+export ledger proposalNonce: Counter;
+export ledger voteNullifiers: Set<Bytes<32>>;
+export ledger disclosures: Map<Bytes<32>, Uint<32>>;
+
+// ───────────────────────── Witnesses ─────────────────────────
+
+witness institutionSecret(): Bytes<32>;
+witness guardianSecret(): Bytes<32>;
