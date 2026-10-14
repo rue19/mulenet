@@ -1,0 +1,14 @@
+node_modules/
+dist/
+reports/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!*.env.example
+# compiler output: keys and zkir are large; key hashes are published separately (§14.5)
+contracts/src/managed/
+midnight-level-db/
+.DS_Store
+logs/
