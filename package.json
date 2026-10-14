@@ -29,6 +29,7 @@
   "overrides": {
     "smoldot": "npm:empty-npm-package@1.0.0",
     "@midnight-ntwrk/ledger-v8": "8.1.0",
-    "@midnight-ntwrk/midnight-js-network-id": "4.1.1"
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1",
+    "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
   }
 }
