@@ -225,3 +225,70 @@ export circuit revokeFlag(t: Bytes<32>, flagEpoch: Uint<32>, typology: Uint<8>, 
   flags.resetHistory();  // roots that still contain the leaf stop verifying immediately
   revocationCount.increment(1);
 }
+
+// ───────────────────────── Attestation ─────────────────────────
+
+circuit slotRoot(s: FlagSlot, t: Bytes<32>, typology: Uint<8>, minE: Uint<32>, self: Bytes<32>): MerkleTreeDigest {
+  assert(s.path.leaf == flagLeaf(t, s.pseudonym, s.epoch, typology, s.ctHash), "slot mismatch");
+  assert(s.epoch >= minE, "slot expired");
+  assert(s.pseudonym != self, "self excluded");
+  return merkleTreePathRoot<20, Bytes<32>>(s.path);
+}
+
+circuit recordAttestation(sk: Bytes<32>, t: Bytes<32>, typology: Uint<8>, k: Uint<8>,
+                          escalationCtHash: Bytes<32>): [] {
+  const key = disclose(attestationKey(t, currentEpoch, typology));
+  assert(!attestations.member(key), "already attested");
+  attestations.insert(key, Attestation {
+    epoch: currentEpoch,
+    k: k,
+    typology: disclose(typology),
+    escalationCtHash: disclose(escalationCtHash),
+    querierTag: disclose(querierTag(sk, key))
+  });
+  attestationCount.increment(1);
+}
+
+// All slots must be proven against one root (L4: mixing roots leaks timing),
+// so only that single root is disclosed.
+export circuit attestCorroboration3(t: Bytes<32>, typology: Uint<8>, slots: Vector<3, FlagSlot>,
+                                    instPath: MerkleTreePath<6, Bytes<32>>,
+                                    escalationCtHash: Bytes<32>): [] {
+  assert(corroborationK <= 3, "policy");
+  const sk = institutionSecret();
+  assertInstitution(sk, instPath);
+
+  const minE = minFreshEpoch();
+  const self = pseudonym(sk, t);
+  const r0 = slotRoot(slots[0], t, typology, minE, self);
+  const r1 = slotRoot(slots[1], t, typology, minE, self);
+  const r2 = slotRoot(slots[2], t, typology, minE, self);
+  assert(r0 == r1 && r0 == r2, "mixed roots");
+  assert(flags.checkRoot(disclose(r0)), "slot not in tree");
+
+  // Pairwise-distinct pseudonyms = three distinct institutions.
+  assert(slots[0].pseudonym != slots[1].pseudonym, "dup");
+  assert(slots[0].pseudonym != slots[2].pseudonym, "dup");
+  assert(slots[1].pseudonym != slots[2].pseudonym, "dup");
+
+  recordAttestation(sk, t, typology, 3, escalationCtHash);
+}
+
+export circuit attestCorroboration2(t: Bytes<32>, typology: Uint<8>, slots: Vector<2, FlagSlot>,
+                                    instPath: MerkleTreePath<6, Bytes<32>>,
+                                    escalationCtHash: Bytes<32>): [] {
+  assert(corroborationK <= 2, "policy");
+  const sk = institutionSecret();
+  assertInstitution(sk, instPath);
+
+  const minE = minFreshEpoch();
+  const self = pseudonym(sk, t);
+  const r0 = slotRoot(slots[0], t, typology, minE, self);
+  const r1 = slotRoot(slots[1], t, typology, minE, self);
+  assert(r0 == r1, "mixed roots");
+  assert(flags.checkRoot(disclose(r0)), "slot not in tree");
+
+  assert(slots[0].pseudonym != slots[1].pseudonym, "dup");
+
+  recordAttestation(sk, t, typology, 2, escalationCtHash);
+}
