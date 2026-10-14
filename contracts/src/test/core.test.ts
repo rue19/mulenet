@@ -162,3 +162,38 @@ describe('pathIndex', () => {
     }
   });
 });
+
+describe('revocation', () => {
+  it('lets the flagger revoke and clears the leaf', () => {
+    const w = flagged();
+    const r = w.flag('A', S);
+    w.revoke('A', S);
+    expect(w.state.revocationCount).toBe(1n);
+    expect(w.state.flags.findPathForLeaf(r.leaf)).toBeUndefined();
+  });
+
+  it('refuses revocation by another institution', () => {
+    const w = flagged();
+    const r = w.flag('A', S);
+    expect(() =>
+      w
+        .asBank('B')
+        .call('revokeFlag', S, r.epoch, r.typology, r.ctHash, r.index, 0n, w.flagPath(r.index, r.leaf), w.institutionPath('B')),
+    ).toThrow('not yours');
+  });
+
+  it('refuses an index that does not match the path', () => {
+    const w = flagged();
+    w.flag('B', subject('other'));
+    w.flag('A', S);
+    expect(() => w.revoke('A', S, { index: 0n })).toThrow('wrong index');
+  });
+
+  it('enforces the per-epoch revocation cap', () => {
+    const w = new World({ revokeQuota: 1n }).register('A');
+    w.flag('A', subject('s1'));
+    w.flag('A', subject('s2'));
+    w.revoke('A', subject('s1'));
+    expect(() => w.revoke('A', subject('s2'))).toThrow('quota');
+  });
+});
