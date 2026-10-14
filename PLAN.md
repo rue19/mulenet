@@ -77,16 +77,30 @@ Each phase has an exit criterion. Nothing in a later phase starts until the gate
 
 **Exit / decisions recorded in `docs/adr/`:** tree depth (prefer 20); revocation strategy; result of the same-block insert test; whether `attest3` fits the < 60 s budget.
 
-### Phase 2 — `packages/crypto` (*parallel with Phase 1*) — §5
-- `normalise.ts`: `mulenet-id/v1` for IN account, UPI VPA, UK account; strict regexes; test vectors file.
-- `oprf/`: ristretto255-SHA512 hash-to-group, blind/evaluate/finalize, DLEQ prove/verify (RFC 9497 §2.2) — **RFC vectors must pass**.
-- `threshold/`: Shamir split (trusted dealer), Lagrange-in-the-exponent combine, per-share DLEQ.
-- `records.ts`: HKDF lookupKey/bucket/recKey, CBOR + XChaCha20-Poly1305 record seal/open.
-- `elgamal/`: threshold ElGamal KEM + AEAD, decryption shares with DLEQ, combine; `ctHash`.
-- `hash.ts`: TS mirrors of every §5.3 derivation (byte-identical to `persistentHash`; cross-checked against the compiled contract's exported pure circuits).
-- Libs: `@noble/curves`, `@noble/hashes`, `@noble/ciphers`, `cbor-x`.
+### Phase 2 — `packages/crypto` — §5
 
-**Exit:** ~40 tests green (RFC vectors, threshold combine, round trips, normalisation vectors, TS↔Compact hash equality).
+**Design (fixed on 14 Oct 2026, before coding):**
+
+| Module | What it does | Built on |
+|---|---|---|
+| `normalise.ts` | `mulenet-id/v1` for IN accounts, UPI VPAs and UK accounts. Strict regexes; anything else is rejected. | — |
+| `hash.ts` | Every §5.3 derivation. `persistentHash<Vector<n,Bytes<32>>>` is plain SHA-256 over the concatenation, and the `Uint→Field→Bytes<32>` cast is 32-byte little-endian (verified against the compiled contract). | `@noble/hashes` |
+| `shamir.ts` | t-of-n Shamir sharing over the ristretto255 scalar field, plus Lagrange coefficients at 0. | `@noble/curves` |
+| `oprf.ts` | Threshold VOPRF (§5.2): the RFC 9497 VOPRF mode, ristretto255-SHA512. Each oracle runs `blindEvaluate` with its share `k_i` and proves it with a DLEQ proof against `K_i`. The client verifies each proof, combines two shares with Lagrange coefficients and unblinds, then applies the RFC `Finalize`. `T = SHA-256("mulenet:tag:v1" ‖ output)`. Batches of up to 64. | `@noble/curves` `ristretto255_oprf` |
+| `dleq.ts` | Chaum-Pedersen DLEQ proofs with a Fiat–Shamir challenge, for decryption shares. | `@noble/curves` |
+| `elgamal.ts` | Threshold ElGamal KEM with XChaCha20-Poly1305 (§5.5). The guardian key comes from a trusted dealer for now (documented). Each decryption share carries a DLEQ proof; 2-of-3 shares combine. `ctHash = SHA-256(ct)`. | `@noble/curves`, `@noble/ciphers` |
+| `records.ts` | Relay records (§5.4): HKDF-SHA256 for `lookupKey`, `bucket` and `recKey`, then CBOR and XChaCha20-Poly1305. AAD binds `v ‖ bucket ‖ lookupKey`, so the relay can't move a record between buckets. | `@noble/hashes`, `@noble/ciphers`, `cbor-x` |
+
+**Tests (target about 40):**
+- RFC 9497 ristretto255 vectors, both OPRF and VOPRF.
+- Threshold check: a 2-of-3 combined evaluation equals single-key evaluation with the reconstructed key, for every pair of oracles.
+- Rejection paths: a bad oracle proof, too few shares, a tampered AEAD.
+- Normalisation vectors.
+- Round trips and tamper tests for records and ElGamal.
+- `fast-check` properties.
+- A cross-check in `contracts/` that `hash.ts` equals the contract's `pureCircuits` byte for byte.
+
+**Exit:** all green.
 
 ### Phase 3 — Full contract and on-chain test suites — §6, §11, §14
 - Complete `mulenet.compact`: all 9 circuits, plus every §1 decision.
