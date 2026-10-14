@@ -132,3 +132,43 @@ export pure circuit pathIndex(p: MerkleTreePath<20, Bytes<32>>): Field {
                  [0, 1], p.path);
   return r[0];
 }
+
+// ───────────────────────── Authorisation ─────────────────────────
+
+circuit assertInstitution(sk: Bytes<32>, path: MerkleTreePath<6, Bytes<32>>): [] {
+  // Binding assert first: a path replayed from another bank's transaction fails here.
+  assert(path.leaf == institutionLeaf(sk, membershipGen), "not bound");
+  assert(institutions.checkRoot(disclose(merkleTreePathRoot<6, Bytes<32>>(path))), "not a member");
+}
+
+circuit assertGuardian(gs: Bytes<32>, path: MerkleTreePath<4, Bytes<32>>): [] {
+  assert(path.leaf == guardianLeaf(gs), "not bound");
+  assert(guardians.checkRoot(disclose(merkleTreePathRoot<4, Bytes<32>>(path))), "not a guardian");
+}
+
+circuit minFreshEpoch(): Uint<32> {
+  return currentEpoch > epochTtl ? (currentEpoch - epochTtl) as Uint<32> : 0 as Uint<32>;
+}
+
+// ───────────────────────── Constructor ─────────────────────────
+
+constructor(g0: Bytes<32>, g1: Bytes<32>, g2: Bytes<32>, t: Uint<8>, k: Uint<8>,
+            epochLen: Uint<64>, firstRollAt: Uint<64>, ttl: Uint<32>,
+            fQuota: Uint<16>, rQuota: Uint<16>) {
+  assert(t >= 1 && t <= 3, "bad threshold");
+  assert(k >= 2 && k <= 3, "bad k");
+  assert(ttl >= 1 && ttl <= 90, "bad ttl");
+  assert(fQuota >= 1 && rQuota >= 1, "bad quota");
+  guardians.insert(disclose(g0));
+  guardians.insert(disclose(g1));
+  guardians.insert(disclose(g2));
+  guardianThreshold = disclose(t);
+  corroborationK = disclose(k);
+  epochLength = disclose(epochLen);
+  nextEpochAt = disclose(firstRollAt);
+  epochTtl = disclose(ttl);
+  flagQuota = disclose(fQuota);
+  revokeQuota = disclose(rQuota);
+  currentEpoch = 0;
+  membershipGen = 0;
+}
