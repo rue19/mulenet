@@ -1,0 +1,16 @@
+{
+  "compactDevtools": "0.5.2",
+  "compactToolchain": "0.31.1",
+  "compactRuntime": "0.16.0",
+  "midnightJs": "4.1.1",
+  "walletSdk": "1.2.0",
+  "dappConnectorApi": "4.0.1",
+  "proofServerImage": "midnightntwrk/proof-server:8.1.3",
+  "localDev": {
+    "proofServerImage": "midnightntwrk/proof-server:8.1.0",
+    "nodeImage": "midnightntwrk/midnight-node:1.0.0",
+    "indexerImage": "midnightntwrk/indexer-standalone:4.3.3"
+  },
+  "node": "1.0.400",
+  "ledger": "8.x"
+}
