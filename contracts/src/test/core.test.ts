@@ -100,3 +100,65 @@ describe('epochs', () => {
     expect(w.state.currentEpoch).toBe(2n);
   });
 });
+
+describe('flags', () => {
+  it('submits a hidden flag at the next free index', () => {
+    const w = flagged();
+    const a = w.flag('A', S);
+    const b = w.flag('B', S);
+    expect([a.index, b.index]).toEqual([0n, 1n]);
+    expect(w.state.flagCount).toBe(2n);
+    expect(w.state.flags.findPathForLeaf(b.leaf)).toBeDefined();
+  });
+
+  it('refuses an unregistered institution', () => {
+    const w = flagged();
+    w.banks.set('X', bytes());
+    expect(() =>
+      w.asBank('X').call('submitFlag', S, 1n, bytes(), 0n, w.institutionPath('A')),
+    ).toThrow('not bound');
+  });
+
+  it('refuses a second flag on the same subject in the same epoch', () => {
+    const w = flagged();
+    w.flag('A', S);
+    expect(() => w.flag('A', S)).toThrow('duplicate flag');
+  });
+
+  it('allows re-flagging the same subject in a later epoch', () => {
+    const w = flagged();
+    w.flag('A', S);
+    w.advanceEpochs(1);
+    expect(() => w.flag('A', S)).not.toThrow();
+  });
+
+  it('enforces the per-epoch flag quota', () => {
+    const w = new World({ flagQuota: 2n }).register('A');
+    w.flag('A', subject('s1'));
+    w.flag('A', subject('s2'));
+    expect(() => w.flag('A', subject('s3'))).toThrow('quota');
+  });
+
+  it('refuses a reused quota slot', () => {
+    const w = flagged();
+    w.flag('A', subject('s1'), 1n, { quotaSlot: 0n });
+    expect(() => w.flag('A', subject('s2'), 1n, { quotaSlot: 0n })).toThrow('quota slot used');
+  });
+
+  it('resets the quota in a new epoch', () => {
+    const w = new World({ flagQuota: 1n }).register('A');
+    w.flag('A', subject('s1'));
+    w.advanceEpochs(1);
+    expect(() => w.flag('A', subject('s2'))).not.toThrow();
+  });
+});
+
+describe('pathIndex', () => {
+  it('matches the leaf position for every index in a small tree', () => {
+    const w = flagged();
+    const recs = Array.from({ length: 9 }, (_, i) => w.flag('A', subject(`s${i}`)));
+    for (const r of recs) {
+      expect(pc.pathIndex(w.flagPath(r.index, r.leaf))).toBe(r.index);
+    }
+  });
+});
