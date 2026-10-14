@@ -1,0 +1,34 @@
+{
+  "name": "mulenet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "contracts",
+    "packages/*",
+    "services/*",
+    "apps/*",
+    "verify"
+  ],
+  "scripts": {
+    "check-versions": "node scripts/check-versions.mjs",
+    "compact": "npm run compact -w contracts",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "overrides": {
+    "smoldot": "npm:empty-npm-package@1.0.0",
+    "@midnight-ntwrk/ledger-v8": "8.1.0",
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1"
+  }
+}
