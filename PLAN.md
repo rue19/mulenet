@@ -8,7 +8,8 @@ Derived from `MULENET_ARCHITECTURE.md` v1.0 (14 Oct 2026). Section refs (§) poi
 
 - ✅ **Phase 0** done. Repo: https://github.com/rue19/mulenet
 - ✅ **Phase 1** done. The contract compiles on 0.31.1 and 36 simulator tests pass. On the local chain the stale-state flag test passed and the leak scan found 0 hits. At depth 20, `attest3` proves in 8.1 s and `submitFlag` in 5.5 s. See `docs/BENCHMARKS.md` and ADRs 0011–0013.
-- ⏭ **Next:** Phase 2 (`packages/crypto`) and Phase 3 (full invariant and adversarial suites).
+- ✅ **Phase 2** done. `packages/crypto` has 75 tests: RFC 9497 vectors, threshold equivalence, ElGamal, records and properties. 13 more tests in `contracts/` check hash parity. See ADR 0014.
+- ⏭ **Next:** Phase 3 (full invariant and adversarial suites, plus the reference-model property test).
 
 ## 0. Where we start
 
