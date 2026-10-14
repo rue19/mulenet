@@ -68,3 +68,67 @@ export ledger disclosures: Map<Bytes<32>, Uint<32>>;
 
 witness institutionSecret(): Bytes<32>;
 witness guardianSecret(): Bytes<32>;
+
+// ───────────────────────── Encoding and hashes (§5.3) ─────────────────────────
+
+pure circuit u8b(x: Uint<8>): Bytes<32> { return (x as Field) as Bytes<32>; }
+pure circuit u16b(x: Uint<16>): Bytes<32> { return (x as Field) as Bytes<32>; }
+pure circuit u32b(x: Uint<32>): Bytes<32> { return (x as Field) as Bytes<32>; }
+pure circuit u64b(x: Uint<64>): Bytes<32> { return (x as Field) as Bytes<32>; }
+
+export pure circuit institutionLeaf(sk: Bytes<32>, gen: Uint<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "mulenet:inst:v1"), sk, u32b(gen)]);
+}
+
+export pure circuit guardianLeaf(gs: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "mulenet:guardian:v1"), gs]);
+}
+
+export pure circuit pseudonym(sk: Bytes<32>, t: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "mulenet:pseud:v1"), sk, t]);
+}
+
+export pure circuit flagLeaf(t: Bytes<32>, p: Bytes<32>, e: Uint<32>, ty: Uint<8>, ct: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<6, Bytes<32>>>([pad(32, "mulenet:flag:v1"), t, p, u32b(e), u8b(ty), ct]);
+}
+
+export pure circuit flagNullifier(sk: Bytes<32>, t: Bytes<32>, e: Uint<32>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([pad(32, "mulenet:flagnf:v1"), sk, t, u32b(e)]);
+}
+
+export pure circuit flagQuotaNullifier(sk: Bytes<32>, e: Uint<32>, slot: Uint<16>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([pad(32, "mulenet:quota:v1"), sk, u32b(e), u16b(slot)]);
+}
+
+export pure circuit revokeQuotaNullifier(sk: Bytes<32>, e: Uint<32>, slot: Uint<16>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([pad(32, "mulenet:rvquota:v1"), sk, u32b(e), u16b(slot)]);
+}
+
+export pure circuit attestationKey(t: Bytes<32>, e: Uint<32>, ty: Uint<8>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([pad(32, "mulenet:att:v1"), t, u32b(e), u8b(ty)]);
+}
+
+export pure circuit querierTag(sk: Bytes<32>, key: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "mulenet:qtag:v1"), sk, key]);
+}
+
+export pure circuit proposalId(kind: Uint<8>, payload: Bytes<32>, nonce: Uint<64>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([pad(32, "mulenet:prop:v1"), u8b(kind), payload, u64b(nonce)]);
+}
+
+export pure circuit voteNullifier(gs: Bytes<32>, id: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "mulenet:vote:v1"), gs, id]);
+}
+
+export pure circuit valueCommitment(v: Uint<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([pad(32, "mulenet:value:v1"), u32b(v)]);
+}
+
+// Leaf position encoded by a path: entry i is the level-i sibling; goes_left means
+// the running node is a left child, i.e. bit i of the index is 0.
+export pure circuit pathIndex(p: MerkleTreePath<20, Bytes<32>>): Field {
+  const r = fold((acc: Vector<2, Field>, e: MerkleTreePathEntry): Vector<2, Field> =>
+                   [e.goes_left ? acc[0] : acc[0] + acc[1], acc[1] + acc[1]],
+                 [0, 1], p.path);
+  return r[0];
+}
