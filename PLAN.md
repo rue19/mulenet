@@ -4,6 +4,12 @@ Derived from `MULENET_ARCHITECTURE.md` v1.0 (14 Oct 2026). Section refs (§) poi
 
 ---
 
+## Status (14 Oct 2026)
+
+- ✅ **Phase 0** done. Repo: https://github.com/rue19/mulenet
+- ✅ **Phase 1** done. The contract compiles on 0.31.1 and 36 simulator tests pass. On the local chain the stale-state flag test passed and the leak scan found 0 hits. At depth 20, `attest3` proves in 8.1 s and `submitFlag` in 5.5 s. See `docs/BENCHMARKS.md` and ADRs 0011–0013.
+- ⏭ **Next:** Phase 2 (`packages/crypto`) and Phase 3 (full invariant and adversarial suites).
+
 ## 0. Where we start
 
 | Item | State on this machine | Action |
