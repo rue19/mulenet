@@ -197,3 +197,101 @@ describe('revocation', () => {
     expect(() => w.revoke('A', subject('s2'))).toThrow('quota');
   });
 });
+
+describe('attestation', () => {
+  it('attests k=3 with three distinct institutions and records it under attKey', () => {
+    const w = flagged();
+    for (const b of ['A', 'B', 'C']) w.flag(b, S);
+    const key = w.attest('D', S, [w.slotOf('A', S), w.slotOf('B', S), w.slotOf('C', S)]);
+    const att = w.state.attestations.lookup(key);
+    expect(att.k).toBe(3n);
+    expect(att.epoch).toBe(0n);
+    expect(eq(att.querierTag, pc.querierTag(w.secretOf('D'), key))).toBe(true);
+  });
+
+  it('attests k=2 when policy allows it', () => {
+    const w = new World({ k: 2n }).register('A', 'B', 'D');
+    w.flag('A', S);
+    w.flag('B', S);
+    w.attest('D', S, [w.slotOf('A', S), w.slotOf('B', S)]);
+    expect(w.state.attestationCount).toBe(1n);
+  });
+
+  it('refuses attest2 under a k=3 policy', () => {
+    const w = flagged();
+    w.flag('A', S);
+    w.flag('B', S);
+    expect(() => w.attest('D', S, [w.slotOf('A', S), w.slotOf('B', S)])).toThrow('policy');
+  });
+
+  it('refuses counting one institution twice', () => {
+    const w = flagged();
+    w.flag('A', S);
+    w.flag('B', S);
+    expect(() => w.attest('D', S, [w.slotOf('A', S), w.slotOf('A', S), w.slotOf('B', S)])).toThrow('dup');
+  });
+
+  it("refuses the querier's own flag", () => {
+    const w = flagged();
+    for (const b of ['A', 'B', 'C']) w.flag(b, S);
+    expect(() => w.attest('C', S, [w.slotOf('A', S), w.slotOf('B', S), w.slotOf('C', S)])).toThrow('self excluded');
+  });
+
+  it('refuses slots proven against different roots', () => {
+    const w = flagged();
+    w.flag('A', S);
+    const early = w.slotOf('A', S);
+    w.flag('B', S);
+    w.flag('C', S);
+    expect(() => w.attest('D', S, [early, w.slotOf('B', S), w.slotOf('C', S)])).toThrow('mixed roots');
+  });
+
+  it('refuses a revoked flag even with a pre-revocation path', () => {
+    const w = flagged();
+    for (const b of ['A', 'B', 'C']) w.flag(b, S);
+    const stale = [w.slotOf('A', S), w.slotOf('B', S), w.slotOf('C', S)];
+    w.revoke('C', S);
+    expect(() => w.attest('D', S, stale)).toThrow('slot not in tree');
+  });
+
+  it('refuses expired flags', () => {
+    const w = new World({ ttl: 2n }).register('A', 'B', 'C', 'D');
+    for (const b of ['A', 'B', 'C']) w.flag(b, S);
+    w.advanceEpochs(3);
+    const slots = [w.slotOf('A', S), w.slotOf('B', S), w.slotOf('C', S)];
+    expect(() => w.attest('D', S, slots)).toThrow('slot expired');
+  });
+
+  it('refuses a second attestation for the same subject, epoch and typology', () => {
+    const w = flagged('E');
+    for (const b of ['A', 'B', 'C']) w.flag(b, S);
+    const slots = [w.slotOf('A', S), w.slotOf('B', S), w.slotOf('C', S)];
+    w.attest('D', S, slots);
+    expect(() => w.attest('E', S, slots)).toThrow('already attested');
+  });
+});
+
+describe('membership rotation', () => {
+  it('evicts institutions not re-registered under the new generation', () => {
+    const w = flagged();
+    const oldPath = w.institutionPath('A');
+    w.govern(KIND.Rotate, bytes());
+    expect(w.state.membershipGen).toBe(1n);
+    expect(() => w.asBank('A').call('submitFlag', S, 1n, bytes(), 0n, oldPath)).toThrow('not bound');
+  });
+});
+
+describe('warrants', () => {
+  it('logs an authorised disclosure for an existing attestation', () => {
+    const w = flagged();
+    for (const b of ['A', 'B', 'C']) w.flag(b, S);
+    const key = w.attest('D', S, [w.slotOf('A', S), w.slotOf('B', S), w.slotOf('C', S)]);
+    w.govern(KIND.Disclose, key);
+    expect(w.state.disclosures.lookup(key)).toBe(0n);
+  });
+
+  it('refuses a warrant for an unknown attestation', () => {
+    const w = new World();
+    expect(() => w.govern(KIND.Disclose, bytes())).toThrow('no attestation');
+  });
+});
