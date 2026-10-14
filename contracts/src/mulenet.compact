@@ -292,3 +292,84 @@ export circuit attestCorroboration2(t: Bytes<32>, typology: Uint<8>, slots: Vect
 
   recordAttestation(sk, t, typology, 2, escalationCtHash);
 }
+
+// ───────────────────────── Governance ─────────────────────────
+
+export circuit propose(kind: Uint<8>, payload: Bytes<32>, gPath: MerkleTreePath<4, Bytes<32>>): [] {
+  assertGuardian(guardianSecret(), gPath);
+  assert(kind >= 1 && kind <= 5, "bad kind");
+  const id = proposalId(disclose(kind), disclose(payload), proposalNonce.read());
+  proposals.insert(id, Proposal {
+    kind: disclose(kind),
+    payload: disclose(payload),
+    approvals: 0,
+    executed: false,
+    createdEpoch: currentEpoch
+  });
+  proposalNonce.increment(1);
+}
+
+circuit assertLive(p: Proposal): [] {
+  assert(!p.executed, "executed");
+  assert(currentEpoch <= (p.createdEpoch + 7) as Uint<32>, "proposal expired");
+}
+
+export circuit approve(id: Bytes<32>, gPath: MerkleTreePath<4, Bytes<32>>): [] {
+  const gs = guardianSecret();
+  assertGuardian(gs, gPath);
+  const did = disclose(id);
+  assert(proposals.member(did), "no proposal");
+  const p = proposals.lookup(did);
+  assertLive(p);
+
+  const vn = disclose(voteNullifier(gs, did));
+  assert(!voteNullifiers.member(vn), "already voted");
+  voteNullifiers.insert(vn);
+
+  proposals.insert(did, Proposal {
+    kind: p.kind,
+    payload: p.payload,
+    approvals: (p.approvals + 1) as Uint<8>,
+    executed: false,
+    createdEpoch: p.createdEpoch
+  });
+}
+
+export circuit execute(id: Bytes<32>, value: Uint<32>): [] {
+  const did = disclose(id);
+  const v = disclose(value);
+  assert(proposals.member(did), "no proposal");
+  const p = proposals.lookup(did);
+  assertLive(p);
+  assert(p.approvals >= guardianThreshold, "quorum");
+
+  if (p.kind == 1) {
+    // RegisterInstitution: payload = institution leaf
+    institutions.insert(p.payload);
+  } else if (p.kind == 2) {
+    // RotateMembership: evicts every institution not re-registered under the new gen
+    membershipGen = (membershipGen + 1) as Uint<32>;
+  } else if (p.kind == 3) {
+    // SetCorroborationK: payload = valueCommitment(value)
+    assert(p.payload == valueCommitment(v), "value");
+    assert(v >= 2 && v <= 3, "bad k");
+    corroborationK = v as Uint<8>;
+  } else if (p.kind == 4) {
+    // AuthorizeDisclosure: payload = attestation key; this is the public warrant log
+    assert(attestations.member(p.payload), "no attestation");
+    disclosures.insert(p.payload, currentEpoch);
+  } else {
+    // SetTtl
+    assert(p.payload == valueCommitment(v), "value");
+    assert(v >= 1 && v <= 90, "bad ttl");
+    epochTtl = v;
+  }
+
+  proposals.insert(did, Proposal {
+    kind: p.kind,
+    payload: p.payload,
+    approvals: p.approvals,
+    executed: true,
+    createdEpoch: p.createdEpoch
+  });
+}
