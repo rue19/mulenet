@@ -181,3 +181,47 @@ export circuit advanceEpoch(): [] {
   nextEpochAt = (nextEpochAt + epochLength) as Uint<64>;
   flags.resetHistory();
 }
+
+// ───────────────────────── Flags ─────────────────────────
+
+export circuit submitFlag(t: Bytes<32>, typology: Uint<8>, ctHash: Bytes<32>, quotaSlot: Uint<16>,
+                          instPath: MerkleTreePath<6, Bytes<32>>): [] {
+  const sk = institutionSecret();
+  assertInstitution(sk, instPath);
+  const e = currentEpoch;
+
+  assert(quotaSlot < flagQuota, "quota");
+  const qn = disclose(flagQuotaNullifier(sk, e, quotaSlot));
+  assert(!quotaNullifiers.member(qn), "quota slot used");
+  quotaNullifiers.insert(qn);
+
+  const nf = disclose(flagNullifier(sk, t, e));
+  assert(!flagNullifiers.member(nf), "duplicate flag");
+  flagNullifiers.insert(nf);
+
+  // insert() takes the next free index on-chain, so concurrent flags do not conflict.
+  flags.insert(disclose(flagLeaf(t, pseudonym(sk, t), e, typology, ctHash)));
+  flagCount.increment(1);
+}
+
+export circuit revokeFlag(t: Bytes<32>, flagEpoch: Uint<32>, typology: Uint<8>, ctHash: Bytes<32>,
+                          index: Uint<64>, quotaSlot: Uint<16>,
+                          leafPath: MerkleTreePath<20, Bytes<32>>,
+                          instPath: MerkleTreePath<6, Bytes<32>>): [] {
+  const sk = institutionSecret();
+  assertInstitution(sk, instPath);
+
+  assert(quotaSlot < revokeQuota, "quota");
+  const qn = disclose(revokeQuotaNullifier(sk, currentEpoch, quotaSlot));
+  assert(!quotaNullifiers.member(qn), "quota slot used");
+  quotaNullifiers.insert(qn);
+
+  // Only the original flagger can reproduce the leaf: the pseudonym needs sk.
+  assert(leafPath.leaf == flagLeaf(t, pseudonym(sk, t), flagEpoch, typology, ctHash), "not yours");
+  assert(pathIndex(leafPath) == (index as Field), "wrong index");
+  assert(flags.checkRoot(disclose(merkleTreePathRoot<20, Bytes<32>>(leafPath))), "unknown flag");
+
+  flags.insertIndexDefault(disclose(index));
+  flags.resetHistory();  // roots that still contain the leaf stop verifying immediately
+  revocationCount.increment(1);
+}
