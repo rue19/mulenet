@@ -172,3 +172,12 @@ constructor(g0: Bytes<32>, g1: Bytes<32>, g2: Bytes<32>, t: Uint<8>, k: Uint<8>,
   currentEpoch = 0;
   membershipGen = 0;
 }
+
+// ───────────────────────── Epochs ─────────────────────────
+
+export circuit advanceEpoch(): [] {
+  assert(blockTimeGte(nextEpochAt), "too early");
+  currentEpoch = (currentEpoch + 1) as Uint<32>;
+  nextEpochAt = (nextEpochAt + epochLength) as Uint<64>;
+  flags.resetHistory();
+}
