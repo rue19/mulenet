@@ -943,7 +943,7 @@ mulenet/
 **v1.1 (14 Oct 2026).** Design review and day-1 compile.
 - Flag leaves no longer bind `flagCount`. Revocation derives the index from the Merkle path. This makes sponsor batching possible (§5.3, §6.3, §7.2).
 - Anonymous per-epoch quotas on flags (500) and revocations (3) (§5.3, §6.1).
-- Flag tree depth 16 → 20, pending proof benchmarks (§13.2).
+- Flag tree depth 16 → 20. Benchmarked: `attest3` proves in 8.1 s and `submitFlag` in 5.5 s (docs/BENCHMARKS.md, ADR 0013).
 - Range checks on k and TTL. Expiry check in `approve`. A warrant requires an existing attestation.
 - Attestation slots must share one root.
 - OPRF: RFC 9497 `Finalize`, then `T = SHA-256("mulenet:tag:v1" ‖ output)` (§5.2 to be implemented that way).
