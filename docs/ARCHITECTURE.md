@@ -233,13 +233,14 @@ Rules (from the Midnight security checklist): every derivation has a unique doma
 
 ```
 lookupKey = HKDF-SHA256(T, info="mulenet:lookup:v1", 32)
-bucket    = lookupKey[0..2]                       // 65,536 buckets → k-anonymous fetch
+bucket    = u16be(lookupKey[0..2])                 // 65,536 buckets → k-anonymous fetch
 recKey    = HKDF-SHA256(T, info="mulenet:rec:v1", 32)
 record    = {
   v: 1, bucket, lookupKey,
   nonce: 24 bytes,
   body: XChaCha20-Poly1305(recKey, nonce,
-          CBOR{ p, epoch, typology, ctHash, index, flaggedAt })
+          CBOR{ p, epoch, typology, ctHash, index, flaggedAt },
+          aad = v ‖ bucket ‖ lookupKey)       // relay cannot re-file records
 }
 ```
 
@@ -947,4 +948,5 @@ mulenet/
 - Range checks on k and TTL. Expiry check in `approve`. A warrant requires an existing attestation.
 - Attestation slots must share one root.
 - OPRF: RFC 9497 `Finalize`, then `T = SHA-256("mulenet:tag:v1" ‖ output)` (§5.2 to be implemented that way).
+- Concrete crypto constructions fixed in ADR 0014 (VOPRF via noble, ElGamal KEM format, record AAD).
 - Local stack images follow `midnight-local-dev`'s `standalone.yml` (node 1.0.0, indexer 4.3.3, proof server 8.1.0). Preprod uses proof server 8.1.3.
