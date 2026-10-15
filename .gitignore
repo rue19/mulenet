@@ -15,3 +15,4 @@ logs/
 infra/secrets/
 .data/
 infra/config/undeployed.json
+infra/state/undeployed.json

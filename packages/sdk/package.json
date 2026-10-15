@@ -12,7 +12,8 @@
     "spike:local": "tsx scripts/spike-local.ts",
     "gen-sponsors": "tsx scripts/gen-sponsor-wallets.ts",
     "keygen": "tsx scripts/keygen.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bootstrap": "tsx scripts/bootstrap.ts"
   },
   "dependencies": {
     "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
