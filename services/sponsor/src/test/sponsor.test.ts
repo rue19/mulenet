@@ -152,3 +152,32 @@ describe('batcher', () => {
     expect(ran.length).toBe(3);
   });
 });
+
+import { keeperTick } from '../keeper.js';
+
+describe('epoch keeper', () => {
+  const base = { nextEpochAt: async () => 1_000n, marginSeconds: 12 };
+
+  it('waits until block time passes nextEpochAt plus the margin', async () => {
+    let calls = 0;
+    const advance = async () => (calls++, 'tx');
+    expect(await keeperTick({ ...base, advance, now: () => 1_011_000 })).toBe('waiting');
+    expect(calls).toBe(0);
+    expect(await keeperTick({ ...base, advance, now: () => 1_012_000 })).toBe('advanced');
+    expect(calls).toBe(1);
+  });
+
+  it('treats "too early" (someone else rolled it) as done', async () => {
+    const advance = async () => {
+      throw new Error('failed assert: too early');
+    };
+    expect(await keeperTick({ ...base, advance, now: () => 2_000_000 })).toBe('already-advanced');
+  });
+
+  it('reports other failures without throwing', async () => {
+    const advance = async () => {
+      throw new Error('sponsor down');
+    };
+    expect(await keeperTick({ ...base, advance, now: () => 2_000_000 })).toBe('error');
+  });
+});

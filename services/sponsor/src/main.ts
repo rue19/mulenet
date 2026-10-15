@@ -8,6 +8,11 @@ import { fromHex } from '@mulenet/crypto';
 import {
   GENESIS_SEED,
   addDustFeesAndFinalize,
+  joinAs,
+  makeProviders,
+  prepareSponsoredCall,
+  readLedger,
+  walletAndMidnightProvider,
   buildWallet,
   deserializeFinalized,
   ensureDust,
@@ -16,11 +21,13 @@ import {
   type WalletContext,
 } from '@mulenet/sdk';
 import { loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
+import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import type { FinalizedTransaction } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { createAccounting } from './accounting.js';
 import { WalletPool } from './pool.js';
 import { preflight } from './preflight.js';
 import { ROLE_CIRCUITS, buildSponsor, type Role } from './server.js';
+import { startKeeper } from './keeper.js';
 
 const network = (process.env.MULENET_NETWORK ?? 'undeployed') as 'undeployed' | 'preprod';
 const cfg = loadPublicConfig(network);
@@ -67,7 +74,32 @@ const { app } = buildSponsor<FinalizedTransaction>({
   accounting: createAccounting({ dbPath: resolve(repoRoot(), `.data/${network}/sponsor.db`) }),
   windowMs: Number(process.env.SPONSOR_WINDOW_MS ?? (network === 'undeployed' ? 2_000 : 30_000)),
 });
+// Epoch keeper: the first sponsor wallet builds advanceEpoch as its own "user" side, then the
+// pool attaches DUST and submits, keeping one in-flight transaction per wallet.
+const keeperWallet = wallets[0].wallet;
+const keeperProviders = makeProviders(
+  net,
+  await walletAndMidnightProvider(keeperWallet),
+  levelPrivateStateProvider({
+    midnightDbName: resolve(repoRoot(), `.data/${network}/keeper/private-state`),
+    privateStateStoreName: 'mulenet-keeper',
+    signingKeyStoreName: 'mulenet-keeper-keys',
+    privateStoragePasswordProvider: () => 'Keeper-has-no-secrets-1!',
+    accountId: keeperWallet.unshieldedKeystore.getBech32Address().asString(),
+  } as never),
+);
+await joinAs(keeperProviders, contractAddress, 'keeper', {});
+const stopKeeper = process.env.SPONSOR_KEEPER === '0' ? () => {} : startKeeper({
+  nextEpochAt: async () => (await readLedger(keeperProviders, contractAddress)).nextEpochAt,
+  advance: async () => {
+    const { bytes } = await prepareSponsoredCall(keeperProviders, keeperWallet, contractAddress, 'keeper', 'advanceEpoch', []);
+    return (await pool.submit(deserializeFinalized(bytes))).txId;
+  },
+  log: (msg, extra) => app.log.info(extra ?? {}, msg),
+});
+
 app.addHook('onClose', async () => {
+  stopKeeper();
   for (const w of wallets) await w.wallet.wallet.stop();
 });
 await app.listen({ host: process.env.HOST ?? '127.0.0.1', port: Number(process.env.PORT ?? new URL(cfg.sponsor.url).port) });
