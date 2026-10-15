@@ -12,3 +12,5 @@ contracts/src/managed/
 midnight-level-db/
 .DS_Store
 logs/
+infra/secrets/
+.data/
