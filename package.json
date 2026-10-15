@@ -12,14 +12,17 @@
     "packages/*",
     "services/*",
     "apps/*",
-    "verify"
+    "verify",
+    "tests/*"
   ],
   "scripts": {
     "check-versions": "node scripts/check-versions.mjs",
     "compact": "npm run compact -w contracts",
     "build": "npm run build --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:up": "npm run dev:up -w tests/integration",
+    "test:integration": "npm run test:integration -w tests/integration"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
