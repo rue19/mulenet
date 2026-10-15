@@ -1,0 +1,13 @@
+{
+  "compiler": "0.31.1",
+  "circuits": {
+    "advanceEpoch": "8ba4b5c83650b6b0dfd541565fe74a46434ff26c505ccf611f41168f11215551",
+    "approve": "d7397470ee01a95f0bc60b4c8101d0c36e7ee7e540a71e3248b8a6dbc2cd7f54",
+    "attestCorroboration2": "92ab1d6fdc7b009c6c36e6cf1ff6c9c43bf937f517df2aba48456b5592b2aa9c",
+    "attestCorroboration3": "0388f967d941956bcd85bf7d22af8fde4245fdf37d7c1144d1d8914eee12111a",
+    "execute": "54f8ad9eaf42901d1adf4f853cdc55c9a76b0a680cd2c9e0275ff3c59b688f9d",
+    "propose": "9c02e2ee9722d2a733317f55442d6d4760ea6181426c01f61aa8599170acea97",
+    "revokeFlag": "922ae333e72df67920aa61275f83a0274e03545c8de0764396b334cb2ca7af1a",
+    "submitFlag": "15250415ae0a392fdc9debc34662ab3397a5a015cda43d8d101d1132f92b457a"
+  }
+}
