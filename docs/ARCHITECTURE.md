@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Document | Architecture specification, v1.1 (see the changelog at the end) |
+| Document | Architecture specification, v1.2 (see the changelog at the end) |
 | Date | 14 October 2026 |
 | Target | Midnight Buildathon (AKINDO), Wave 3 |
 | Target network | Midnight **ledger 8** — local `undeployed` → `preprod` (judge-visible) → `mainnet` (stretch) |
@@ -281,7 +281,7 @@ Attestations carry an `escalationCtHash` of the same shape. Its plaintext is `{ 
 | `guardianThreshold` | `Uint<8>` (sealed) | t in t-of-n | — |
 | `membershipGen` | `Uint<32>` | Bumped to evict institutions | — |
 | `institutions` | `HistoricMerkleTree<6, Bytes<32>>` | Institution leaves (64 slots across gens) | 64 |
-| `flags` | `HistoricMerkleTree<20, Bytes<32>>` | Hidden flag leaves (~1M per deployment) | 2²⁰, then rotate season |
+| `flags` | `HistoricMerkleTree<20, Bytes<32>>` | Hidden flag leaves (1,048,576 per deployment) | 2²⁰ |
 | `flagCount` | `Counter` | Public total (write-only in circuits) | — |
 | `quotaNullifiers` | `Set<Bytes<32>>` | Per-epoch flag and revocation quota slots | Linear in flags |
 | `flagQuota` / `revokeQuota` | `Uint<16>` (sealed) | Per-institution per-epoch caps (e.g. 500 / 3) | — |
@@ -663,11 +663,11 @@ Call `setNetworkId(...)` before any provider is created, because `getNetworkId()
 
 | Budget | Target | Lever if exceeded |
 |---|---|---|
-| Prove time `attest3` on a laptop | < 60 s | Drop flag depth 16 → 12; prefer the `attest2` policy |
-| Prove time `submitFlag` | < 20 s | Drop typology from the leaf |
-| Practical circuit size | Stay in the k ≈ 10–15 band reported by builders; hangs reported at ≥17 | Split attestation into `attest2`; reduce depth |
+| Prove time `attest3` on a laptop | < 60 s — **measured 8.1 s at depth 20** | Drop flag depth; prefer the `attest2` policy |
+| Prove time `submitFlag` | < 20 s — **measured 5.4–5.8 s warm, 12.3 s cold** | Drop typology from the leaf |
+| Practical circuit size | Stay below k ≈ 17, where builders report hangs — **largest proving keys ≈ 19.5 MB, consistent with k ≈ 16** | Split attestation into `attest2`; reduce depth |
 | Persistent writes per tx | ≪ 50 KB per block | Already small (nullifier + tree updates + counter) |
-| Capacity | 65,536 flags per deployment | "Season" contracts per quarter, or depth 20 once benchmarked |
+| Capacity | **1,048,576 flags per deployment (depth 20)** | Depth 24 after re-benchmarking, if national-scale volume needs it |
 
 ### 13.3 Day-1 spike (gates the whole build)
 
@@ -950,3 +950,8 @@ mulenet/
 - OPRF: RFC 9497 `Finalize`, then `T = SHA-256("mulenet:tag:v1" ‖ output)` (§5.2 to be implemented that way).
 - Concrete crypto constructions fixed in ADR 0014 (VOPRF via noble, ElGamal KEM format, record AAD).
 - Local stack images follow `midnight-local-dev`'s `standalone.yml` (node 1.0.0, indexer 4.3.3, proof server 8.1.0). Preprod uses proof server 8.1.3.
+
+**v1.2 (15 Oct 2026).** Phase 3 closeout.
+- Depth 20 confirmed. Capacity is 1,048,576 flags per deployment. Measured on a laptop: `attestCorroboration3` 8.1 s, `submitFlag` 5.4–5.8 s warm and 12.3 s cold, `revokeFlag` 4.4 s (§13.2, BENCHMARKS.md).
+- The depth-16 comparison benchmark was **skipped deliberately**. Depth 20 already sits far inside every budget, so the depth-16 numbers could not change the decision.
+- The contract test suite is complete: invariants I1–I7, an adversarial file per threat in §11, parity between `attestCorroboration2` and `attestCorroboration3`, and a reference-model property test (docs/TESTING.md).
