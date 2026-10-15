@@ -7,7 +7,7 @@ import { combineAndDecrypt, decodeCbor, fromHex, openRecord, recordKeys, toHex, 
 import { repoRoot } from '@mulenet/sdk/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bankClient, guardianOperator, regulatorClient } from '@mulenet/sdk/clients';
-import { startStack, type Stack } from './stack.js';
+import { recordSecret, startStack, type Stack } from './stack.js';
 
 const NET = 'undeployed';
 process.env.MULENET_DEPLOYMENT = 'demo';
@@ -15,6 +15,7 @@ const X = `acct:v1:IN:ICIC0000104:${(BigInt('0x' + randomBytes(7).toString('hex'
 
 let stack: Stack;
 beforeAll(async () => {
+  recordSecret('demo.identifier', { text: X });
   // Fresh demo deployment: banks A–D registered, bank E deliberately not.
   execFileSync('npx', ['tsx', 'scripts/bootstrap.ts', NET, '--epoch', '60', '--ttl', '1', '--k', '2', '--skip', 'bank-e'], {
     cwd: resolve(repoRoot(), 'packages/sdk'),
@@ -98,6 +99,7 @@ describe('demo script', () => {
     );
     expect(details.identifier).toBe(X);
     const T = new Uint8Array(details.tag);
+    recordSecret('demo.T', { hex: toHex(T) });
 
     const { body: bucket } = await regulator.bucket(recordKeys(T).bucket);
     const mine = bucket.records.filter((b64) => {

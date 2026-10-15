@@ -4,7 +4,7 @@
 // Prerequisites: infra/local stack up, keygen and bootstrap done.
 //   npm run dev:up -w tests/integration            (Ctrl-C stops everything)
 import { spawn, type ChildProcess } from 'node:child_process';
-import { createWriteStream, mkdirSync } from 'node:fs';
+import { appendFileSync, createWriteStream, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { dataDir, loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
 
@@ -94,3 +94,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const [n, u] of Object.entries(stack.urls)) console.log(`  ${n.padEnd(10)} ${u}`);
   process.on('SIGINT', () => void stack.stop().then(() => process.exit(0)));
 }
+
+// Records values that must never appear in any output, for the leak scanner (tools/leak-scan).
+export const recordSecret = (name: string, value: { hex?: string; text?: string }) => {
+  const dir = resolve(repoRoot(), 'test-artifacts');
+  mkdirSync(dir, { recursive: true });
+  appendFileSync(resolve(dir, 'secrets.jsonl'), JSON.stringify({ name, ...value }) + '\n');
+};

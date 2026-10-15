@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bankClient } from '@mulenet/sdk/clients';
-import { startStack, type Stack } from './stack.js';
+import { recordSecret, startStack, type Stack } from './stack.js';
 
 const NET = 'undeployed';
 // A fresh account per run, so repeated runs against one deployment stay independent.
@@ -13,6 +13,8 @@ const Y = acct();
 
 let stack: Stack;
 beforeAll(async () => {
+  recordSecret('flag-check.X', { text: X });
+  recordSecret('flag-check.Y', { text: Y });
   // Keeper off: an epoch roll mid-test would make the same-epoch duplicate check meaningless.
   stack = await startStack(NET, { banks: ['bank-a', 'bank-b', 'bank-c', 'bank-e'], keeper: false });
 });
