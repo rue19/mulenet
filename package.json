@@ -24,7 +24,9 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:up": "npm run dev:up -w tests/integration",
     "test:integration": "npm run test:integration -w tests/integration",
-    "leak-scan": "tsx tools/leak-scan/src/cli.ts"
+    "leak-scan": "tsx tools/leak-scan/src/cli.ts",
+    "check-dedupe": "node scripts/check-dedupe.mjs",
+    "keygen": "npm run keygen -w packages/sdk --"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
