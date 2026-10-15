@@ -1,0 +1,32 @@
+# MuleNet services against the local chain (infra/local/standalone.yml), §4.7.
+# Host networking keeps the 127.0.0.1 URLs from infra/config/undeployed.json valid.
+# Prerequisites: keygen + bootstrap (infra/secrets, infra/state), proof server on :6301.
+#   docker compose -f infra/docker-compose.services.yml up -d --build
+x-service: &service
+  image: mulenet/services
+  build: { context: .., dockerfile: infra/Dockerfile }
+  network_mode: host
+  restart: unless-stopped
+  environment: &env
+    MULENET_NETWORK: undeployed
+    MN_PROOF_SERVER: http://127.0.0.1:6301
+  volumes:
+    - ../infra/config:/app/infra/config:ro
+    - ../infra/state:/app/infra/state:ro
+    - ../infra/secrets:/app/infra/secrets:ro
+    - mulenet-data:/app/.data
+
+services:
+  oracle-1: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '1' } }
+  oracle-2: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '2' } }
+  oracle-3: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '3' } }
+  relay: { <<: *service, command: services/relay }
+  sponsor: { <<: *service, command: services/sponsor }
+  bank-a: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-a }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-b: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-b }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-c: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-c }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-d: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-d }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-e: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-e }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+
+volumes:
+  mulenet-data: {}
