@@ -10,7 +10,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "spike:local": "tsx scripts/spike-local.ts",
-    "gen-sponsors": "tsx scripts/gen-sponsor-wallets.ts"
+    "gen-sponsors": "tsx scripts/gen-sponsor-wallets.ts",
+    "keygen": "tsx scripts/keygen.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
@@ -27,10 +29,36 @@
     "@mulenet/contract": "0.1.0",
     "pino": "^10.1.0",
     "rxjs": "^7.8.1",
-    "ws": "^8.19.0"
+    "ws": "^8.19.0",
+    "zod": "4.6.7",
+    "@mulenet/crypto": "0.1.0",
+    "@mulenet/service-kit": "0.1.0"
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",
-    "tsx": "^4.20.0"
+    "tsx": "^4.20.0",
+    "vitest": "^4.0.15"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./api-types": {
+      "types": "./dist/api-types.d.ts",
+      "import": "./dist/api-types.js",
+      "default": "./dist/api-types.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js",
+      "default": "./dist/config.js"
+    },
+    "./oprf-client": {
+      "types": "./dist/oprf-client.d.ts",
+      "import": "./dist/oprf-client.js",
+      "default": "./dist/oprf-client.js"
+    }
   }
 }
