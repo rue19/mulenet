@@ -160,7 +160,7 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 - **Node version:** Node is v24.18, so `node:sqlite` (X3) is available unflagged.
 
 ### A. Phase 3 closeout
-1. ✅ 3.1: 1,000 runs as 10 seeded chunks, all passed (docs/TESTING.md).
+1. ▶ 3.1: 10 seeded chunks (1,000 runs) passed. **But** a separate single-process run with seed −1261955690 diverged at run 648. The full counterexample was lost to output truncation, and it is being replayed now to capture it. Not done until it is fixed and committed as a regression. Don't push further to `main` until then.
 2. ✅ 3.2: pushed to `phase-3` throughout. Merge to `main` once 3.1 passes.
 3. ✅ 3.3: `docs/TESTING.md`, with the seed policy.
 4. ✅ 3.4: `attest2` parity (9 tests). The benchmark row is added to the spike but not yet re-measured.
