@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, phase-3]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Compact toolchain 0.31.1
+        uses: midnightntwrk/setup-compact-action@836895c8fffbbea6bd986af2b17e8941ff29d1f8
+        with:
+          compact-version: '0.31.1'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      # npm 12 runs only the install scripts allow-listed in package.json#allowScripts (R11).
+      - run: npm install -g npm@12
+      - run: npm ci
+
+      - name: Version pins and runtime dedupe (R7)
+        run: |
+          npm run check-versions
+          npm run check-dedupe
+
+      - name: Compile contract
+        run: npm run compact
+
+      - name: Reproducible verifier keys
+        run: |
+          npx tsx verify/src/cli.ts keys --write docs/verifier-keys.json
+          git diff --exit-code docs/verifier-keys.json
+
+      - name: Build packages
+        run: npm run build -w contracts -w packages/crypto -w packages/service-kit -w packages/sdk
+
+      - name: Typecheck
+        run: |
+          for p in contracts packages/crypto packages/service-kit packages/sdk services/oracle services/relay services/sponsor services/bank-node services/guardian services/explorer tools/leak-scan verify tests/integration; do
+            echo "::group::$p"; npx tsc -p $p/tsconfig.json --noEmit; echo "::endgroup::"
+          done
+
+      - name: Contract tests (unit, invariants, adversarial, 100 property runs)
+        run: npm test -w contracts
+        env:
+          PROPERTY_RUNS: '100'
+
+      - name: Crypto and service tests
+        run: |
+          for p in packages/crypto packages/service-kit services/oracle services/relay services/sponsor services/bank-node services/guardian services/explorer tools/leak-scan; do
+            echo "::group::$p"; (cd $p && npx vitest run); echo "::endgroup::"
+          done
+
+      - name: Console build
+        run: npm run build -w apps/console
+
+      - name: Leak scan (self-test plus test outputs)
+        run: |
+          npx tsx packages/sdk/scripts/keygen.ts undeployed --force
+          npm run leak-scan -- undeployed
