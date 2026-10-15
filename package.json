@@ -31,5 +31,14 @@
     "@midnight-ntwrk/ledger-v8": "8.1.0",
     "@midnight-ntwrk/midnight-js-network-id": "4.1.1",
     "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
+  },
+  "allowScripts": {
+    "classic-level@3.0.0": true,
+    "esbuild@0.28.2": true,
+    "protobufjs@7.6.6": true,
+    "cbor-extract": false,
+    "cpu-features": false,
+    "msgpackr-extract": false,
+    "ssh2": false
   }
 }
