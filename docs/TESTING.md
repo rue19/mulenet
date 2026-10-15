@@ -11,6 +11,7 @@ All counts are from the current `main`. Run everything with `npm test` from the 
 | Adversarial (§11) | `contracts/src/test/adversarial/` | 67 in 12 files | One file per threat-model row, attacks specific to this design, and `attest2` parity |
 | Reference-model property | `contracts/src/test/property/` | 1 property: 100 runs in CI; 1,000 nightly as 10 seeded chunks (`scripts/property-chunks.sh`) | Random operation sequences; the contract must accept exactly what a plain TypeScript model accepts |
 | Crypto | `packages/crypto/src/test/` | 75 | RFC 9497 vectors, threshold equivalence, ElGamal, relay records, normalisation vectors, properties |
+| Judge mode, end to end | `tests/e2e/judge.spec.ts` (Playwright) | 1 | A real browser runs all 11 judge-mode steps against a fresh demo deployment with every service live; each step must show “as expected” or “refused as designed”. First pass: 12.4 min, all green |
 | On-chain test run | `packages/sdk/scripts/spike-local.ts` | — | Real proofs on the local network: flags proven against the same state, timings, and a leak scan of transaction bytes (BENCHMARKS.md) |
 
 ## Invariants → tests

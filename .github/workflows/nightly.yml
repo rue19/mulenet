@@ -44,6 +44,11 @@ jobs:
       - name: Phase 5 integration (the demo script)
         run: cd tests/integration && npx vitest run src/demo.test.ts
 
+      - name: Judge mode end to end in a browser (Playwright)
+        run: |
+          npm run build -w apps/console
+          (cd tests/e2e && npx playwright install --with-deps chromium && npx playwright test)
+
       - name: Reference-model property test (10 chunks × 100 runs, one seed each)
         run: scripts/property-chunks.sh 10 100
 
@@ -57,4 +62,6 @@ jobs:
           path: |
             test-artifacts/leak-scan
             test-artifacts/property
+            test-artifacts/e2e-report
+            test-artifacts/e2e-results
             .data/**/logs

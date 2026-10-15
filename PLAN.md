@@ -182,7 +182,7 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 13. ✅ 4.3: bank node, with boot sequence, durable job queue, flag and check flows, and the outbox, 20 tests against the contract simulator.
 14. ✅ 4.5: `scripts/bootstrap.ts`, with `--skip` and named deployments.
 15. ✅ 4.6: integration test `flag-check`, green twice in a row on fresh processes.
-16. ◐ 4.7: Dockerfile and services compose written but not yet built. `npm run dev:up` (process runner) works.
+16. ◐ 4.7: the services image builds (1.25 GB, 346 s). The compose stack hasn't been started from it yet. `npm run dev:up` (process runner) works.
 17. **P6-0 Preprod walking skeleton, as soon as DUST exists.** Blocked on [YOU] faucet and token.
 
 ### D. Phase 5: attest, revoke, warrants
@@ -190,7 +190,7 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 19. ✅ 5.2 revoke
 20. ✅ 5.4 epoch keeper (auto, manual and off modes)
 21. ✅ 5.3 [PAIR] guardian daemon (8 tests). Governance runs through each guardian's operator API rather than a separate `mulenet-gov` CLI.
-22. ▶ 5.5 demo integration test
+22. ✅ 5.5 demo integration test, 11/11
 23. ◐ S6.1 [PAIR]: first pass done (0 bank wallet keys in tx bytes). One 16-byte window shared by a bank's two txs (`0000…009a`) still needs explaining → ADR-0016
 
 ### E. Phase 6: Preprod promotion (blocked on [YOU] faucet, token and VPS decision)
@@ -200,15 +200,15 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 27. ADR-0015 (maintenance authority)
 
 ### F. Phase 7: explorer and console
-28. 7.1 explorer
-29. 7.3 X-ray engine
-30. 7.2 console: bank, regulator, transparency, xray, state, judge
+28. ✅ 7.1 explorer
+29. ✅ 7.3 X-ray engine
+30. ✅ 7.2 console. A Playwright judge-mode test passes all 11 steps in a browser (nightly).
 31. 7.5 hosting
 
 ### G. Phase 8
-32. 8.1 leak scanner with self-test
-33. 8.2 `mulenet-verify`
-34. 8.3 CI: `ci.yml`, `nightly.yml`, `preprod.yml`
+32. ✅ 8.1 leak scanner, with a live canary on every run
+33. ✅ 8.2 `mulenet-verify`
+34. ✅ 8.3 CI green on GitHub; nightly and preprod workflows written
 
 ### H. Phase 9: docs and submission (§9), mostly [YOU]/[PAIR]
 35. Docs and submission package
