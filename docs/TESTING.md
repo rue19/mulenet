@@ -9,7 +9,7 @@ All counts are from the current `main`. Run everything with `npm test` from the 
 | Contract unit | `contracts/src/test/unit/` | 54 | Every circuit's happy path and main rejections; `pathIndex`; static source rules; hash parity with `@mulenet/crypto` |
 | Invariants I1–I7 | `contracts/src/test/invariants.test.ts` | 19 | One `describe` per invariant in ARCHITECTURE §6.4 |
 | Adversarial (§11) | `contracts/src/test/adversarial/` | 67 in 12 files | One file per threat-model row, attacks specific to this design, and `attest2` parity |
-| Reference-model property | `contracts/src/test/property/` | 1 property, 25 runs in CI, 1,000 runs nightly | Random operation sequences; the contract must accept exactly what a plain TypeScript model accepts |
+| Reference-model property | `contracts/src/test/property/` | 1 property: 100 runs in CI; 1,000 nightly as 10 seeded chunks (`scripts/property-chunks.sh`) | Random operation sequences; the contract must accept exactly what a plain TypeScript model accepts |
 | Crypto | `packages/crypto/src/test/` | 75 | RFC 9497 vectors, threshold equivalence, ElGamal, relay records, normalisation vectors, properties |
 | On-chain test run | `packages/sdk/scripts/spike-local.ts` | — | Real proofs on the local network: flags proven against the same state, timings, and a leak scan of transaction bytes (BENCHMARKS.md) |
 
@@ -95,3 +95,16 @@ fast-check prints the seed and shrunk counterexample of any failure. When the pr
 1. Fix the contract or the model, whichever is wrong.
 2. Add the counterexample as a fixed-seed regression under `contracts/src/test/property/regressions/`, named after the bug. Use `fc.assert(..., { seed, path, endOnFailure: true })` with the reported values, or an explicit op list.
 3. Regressions run on every CI build and are never deleted.
+
+## 1,000-run result (15 Oct 2026)
+
+`scripts/property-chunks.sh 10 100`, base seed 202300626 (chunk *i* uses seed 202300626 + *i*):
+
+| | |
+|---|---|
+| Runs | 1,000 (10 chunks × 100), **all passed** |
+| Attestations accepted / rejected | 475 / 3,236 |
+| Time per chunk | 108–128 s, peak memory ≈ 0.75–0.80 GB |
+
+Single-process 1,000-run jobs grew past 3 GB and slowed sharply as memory accumulated across runs. Chunks keep memory flat and turn any failure into one replayable seed:
+`PROPERTY_SEED=<seed> PROPERTY_RUNS=100 npx vitest run src/test/property` (in `contracts/`).

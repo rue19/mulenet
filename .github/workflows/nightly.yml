@@ -44,11 +44,8 @@ jobs:
       - name: Phase 5 integration (the demo script)
         run: cd tests/integration && npx vitest run src/demo.test.ts
 
-      - name: Reference-model property test (1,000 runs)
-        run: npm test -w contracts -- src/test/property
-        env:
-          PROPERTY_RUNS: '1000'
-          PROPERTY_SHRINK: '0'
+      - name: Reference-model property test (10 chunks × 100 runs, one seed each)
+        run: scripts/property-chunks.sh 10 100
 
       - name: Full leak scan (service logs, databases, identifiers and tags recorded by the tests)
         run: npm run leak-scan -- undeployed
@@ -59,4 +56,5 @@ jobs:
           name: nightly-artifacts
           path: |
             test-artifacts/leak-scan
+            test-artifacts/property
             .data/**/logs

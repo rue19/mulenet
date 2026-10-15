@@ -160,7 +160,7 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 - **Node version:** Node is v24.18, so `node:sqlite` (X3) is available unflagged.
 
 ### A. Phase 3 closeout
-1. ▶ 3.1: 1,000-run property test (still running; the first 1,000-run attempt hit a fixed 10-minute timeout, which is now scaled to the run count).
+1. ✅ 3.1: 1,000 runs as 10 seeded chunks, all passed (docs/TESTING.md).
 2. ✅ 3.2: pushed to `phase-3` throughout. Merge to `main` once 3.1 passes.
 3. ✅ 3.3: `docs/TESTING.md`, with the seed policy.
 4. ✅ 3.4: `attest2` parity (9 tests). The benchmark row is added to the spike but not yet re-measured.
