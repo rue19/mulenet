@@ -59,6 +59,11 @@
       "types": "./dist/oprf-client.d.ts",
       "import": "./dist/oprf-client.js",
       "default": "./dist/oprf-client.js"
+    },
+    "./relay-client": {
+      "types": "./dist/relay-client.d.ts",
+      "import": "./dist/relay-client.js",
+      "default": "./dist/relay-client.js"
     }
   }
 }
