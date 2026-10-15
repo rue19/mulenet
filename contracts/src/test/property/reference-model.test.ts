@@ -165,7 +165,9 @@ describe('reference model', () => {
       fc.property(fc.array(op, { minLength: 12, maxLength: 40 }), (ops) => {
         run(ops, stats);
       }),
-      { numRuns: RUNS },
+      // PROPERTY_SHRINK=0 reports the first counterexample immediately instead of shrinking it
+      // (shrinking replays whole simulated contracts and can take hours at 1,000 runs).
+      { numRuns: RUNS, endOnFailure: process.env.PROPERTY_SHRINK === '0', seed: process.env.PROPERTY_SEED ? Number(process.env.PROPERTY_SEED) : undefined },
     );
     // Guard against a vacuous pass: both outcomes must actually have been exercised.
     expect(stats.attestOk).toBeGreaterThan(0);
