@@ -53,9 +53,14 @@ export const FlagRequest = z.object({
   caseRef: z.string().min(1).max(100),
   idempotencyKey: z.string().min(8).max(100),
 });
-export const RevokeRequest = z.object({ idempotencyKey: z.string().min(8).max(100) });
+// T is never stored, so revocation re-derives it from the identifier in the bank's own case record.
+export const RevokeRequest = z.object({ identifier: z.string().min(1).max(300), idempotencyKey: z.string().min(8).max(100) });
 export const CheckRequest = z.object({ identifier: z.string().min(1).max(300), typology: Typology.optional() });
-export const AttestRequest = FlagRequest.extend({ k: z.union([z.literal(2), z.literal(3)]) });
+export const AttestRequest = FlagRequest.extend({
+  k: z.union([z.literal(2), z.literal(3)]),
+  // Honoured only when the node runs with MULENET_DEMO_HOOKS=1 (judge-mode refusals).
+  demoHook: z.enum(['duplicate-slot', 'include-self']).optional(),
+});
 
 export const JobState = z.enum(['queued', 'tagging', 'proving', 'sponsoring', 'submitted', 'confirmed', 'failed']);
 export const Job = z.object({
@@ -86,5 +91,6 @@ export type SponsorRefusal = z.infer<typeof SponsorRefusal>;
 export type FlagRequest = z.infer<typeof FlagRequest>;
 export type CheckRequest = z.infer<typeof CheckRequest>;
 export type AttestRequest = z.infer<typeof AttestRequest>;
+export type RevokeRequest = z.infer<typeof RevokeRequest>;
 export type Job = z.infer<typeof Job>;
 export type CheckResult = z.infer<typeof CheckResult>;
