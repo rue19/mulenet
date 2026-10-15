@@ -26,7 +26,8 @@
     "test:integration": "npm run test:integration -w tests/integration",
     "leak-scan": "tsx tools/leak-scan/src/cli.ts",
     "check-dedupe": "node scripts/check-dedupe.mjs",
-    "keygen": "npm run keygen -w packages/sdk --"
+    "keygen": "npm run keygen -w packages/sdk --",
+    "test:e2e": "npm run test:e2e -w tests/e2e"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

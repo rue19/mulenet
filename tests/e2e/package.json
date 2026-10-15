@@ -1,0 +1,17 @@
+{
+  "name": "@mulenet/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  },
+  "dependencies": {
+    "@mulenet/integration": "0.1.0",
+    "@mulenet/sdk": "0.1.0"
+  }
+}
