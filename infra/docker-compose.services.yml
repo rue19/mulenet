@@ -4,10 +4,12 @@
 #   docker compose -f infra/docker-compose.services.yml up -d --build
 x-service: &service
   image: mulenet/services
+  depends_on: { init-data: { condition: service_completed_successfully } }
   build: { context: .., dockerfile: infra/Dockerfile }
   network_mode: host
   restart: unless-stopped
   environment: &env
+    MULENET_ROOT: /app
     MULENET_NETWORK: undeployed
     MN_PROOF_SERVER: http://127.0.0.1:6301
   volumes:
@@ -17,6 +19,12 @@ x-service: &service
     - mulenet-data:/app/.data
 
 services:
+  # Named volumes are created root-owned; hand /app/.data to the image's `node` user once.
+  init-data:
+    image: mulenet/services
+    user: root
+    entrypoint: ['sh', '-c', 'chown -R node:node /app/.data']
+    volumes: ['mulenet-data:/app/.data']
   oracle-1: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '1' } }
   oracle-2: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '2' } }
   oracle-3: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '3' } }
