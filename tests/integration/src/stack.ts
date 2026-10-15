@@ -24,7 +24,7 @@ const waitHealthy = async (name: string, url: string, timeoutMs: number) => {
   throw new Error(`${name} did not become healthy at ${url}`);
 };
 
-export type StackOptions = { banks?: string[]; guardians?: boolean; keeper?: boolean | 'manual'; demoHooks?: boolean };
+export type StackOptions = { banks?: string[]; guardians?: boolean; keeper?: boolean | 'manual'; demoHooks?: boolean; explorer?: boolean };
 
 export const startStack = async (network = 'undeployed', opts: StackOptions = {}): Promise<Stack> => {
   const banks = opts.banks;
@@ -64,11 +64,16 @@ export const startStack = async (network = 'undeployed', opts: StackOptions = {}
   await Promise.all(Object.entries(urls).filter(([n]) => n !== 'sponsor').map(([n, u]) => waitHealthy(n, u, 60_000)));
   await waitHealthy('sponsor', cfg.sponsor.url, 300_000);
   for (const b of cfg.institutions.filter((i) => !banks || banks.includes(i.id))) run(b.id, 'services/bank-node', { BANK_ID: b.id, MULENET_DEMO_HOOKS: opts.demoHooks ? '1' : '0' }, b.url);
+  if (opts.explorer) run('explorer', 'services/explorer', {}, 'http://127.0.0.1:7600');
   if (opts.guardians) {
     for (const g of cfg.guardians.members) run(`guardian-${g.index}`, 'services/guardian', { GUARDIAN_INDEX: String(g.index) }, g.url);
   }
   await Promise.all(
-    [...cfg.institutions.filter((i) => !banks || banks.includes(i.id)).map((b) => [b.id, b.url]), ...(opts.guardians ? cfg.guardians.members.map((g) => [`guardian-${g.index}`, g.url]) : [])].map(
+    [
+      ...cfg.institutions.filter((i) => !banks || banks.includes(i.id)).map((b) => [b.id, b.url]),
+      ...(opts.guardians ? cfg.guardians.members.map((g) => [`guardian-${g.index}`, g.url]) : []),
+      ...(opts.explorer ? [['explorer', 'http://127.0.0.1:7600']] : []),
+    ].map(
       ([n, u]) => waitHealthy(n, u, 300_000),
     ),
   );
@@ -89,7 +94,7 @@ export const startStack = async (network = 'undeployed', opts: StackOptions = {}
 };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const stack = await startStack(process.env.MULENET_NETWORK ?? 'undeployed');
+  const stack = await startStack(process.env.MULENET_NETWORK ?? 'undeployed', { guardians: true, explorer: true, demoHooks: process.env.MULENET_DEMO_HOOKS === '1' });
   console.log('MuleNet stack up:');
   for (const [n, u] of Object.entries(stack.urls)) console.log(`  ${n.padEnd(10)} ${u}`);
   process.on('SIGINT', () => void stack.stop().then(() => process.exit(0)));
