@@ -213,3 +213,136 @@ export const check = async (d: FlowDeps, input: { identifier: string; typology?:
     timings: { oprfMs: Math.round(t1 - t0), relayMs: Math.round(t2 - t1), verifyMs: Math.round(t3 - t2) },
   };
 };
+
+// ── attest (§5.1) ──
+
+export type AttestInput = {
+  identifier: string;
+  typology: number;
+  caseRef: string;
+  k: 2 | 3;
+  // Demo-only hooks (MULENET_DEMO_HOOKS=1) that force the two on-chain refusals in the script.
+  demoHook?: 'duplicate-slot' | 'include-self';
+};
+export type AttestOutput = { attKey: string; txId: string; blockHeight: number; epoch: number };
+
+export const attest = async (
+  d: FlowDeps,
+  input: AttestInput,
+  onState: (s: 'tagging' | 'proving' | 'sponsoring') => void = () => {},
+): Promise<AttestOutput> => {
+  const canonical = canonicalise(input.identifier);
+  onState('tagging');
+  const T = await d.oprf.tag(canonical);
+  const self = toHex(hash.pseudonym(d.institutionSecret, T));
+  const bodies = openBucket(T, (await d.relay.bucket(recordKeys(T).bucket)).records);
+
+  for (let attempt = 0; ; attempt++) {
+    // One snapshot: every slot path comes from the same root (the contract asserts it).
+    const { ledger } = await d.chain.snapshot();
+    const epoch = Number(ledger.currentEpoch);
+    const minEpoch = Math.max(0, epoch - Number(ledger.epochTtl));
+    type Slot = { pseudonym: Uint8Array; epoch: bigint; ctHash: Uint8Array; path: MerklePath; index: number; flagEpoch: number };
+    const valid: Slot[] = [];
+    let own: Slot | undefined;
+    for (const b of [...bodies].sort((x, y) => y.epoch - x.epoch)) {
+      if (b.typology !== input.typology || b.epoch < minEpoch) continue;
+      const path = ledger.flags.findPathForLeaf(hash.flagLeaf(T, b.p, BigInt(b.epoch), BigInt(b.typology), b.ctHash));
+      if (!path || Number(d.chain.pathIndex(path)) !== b.index) continue;
+      const slot = { pseudonym: b.p, epoch: BigInt(b.epoch), ctHash: b.ctHash, path, index: b.index, flagEpoch: b.epoch };
+      if (toHex(b.p) === self) {
+        own ??= slot;
+        continue;
+      }
+      if (!valid.some((v) => toHex(v.pseudonym) === toHex(b.p))) valid.push(slot);
+    }
+
+    let slots = valid.slice(0, input.k);
+    if (input.demoHook === 'duplicate-slot' && valid.length >= 1) slots = [valid[0], ...valid.slice(0, input.k - 1)];
+    if (input.demoHook === 'include-self' && own) slots = [own, ...valid.slice(0, input.k - 1)];
+    // Fewer than k usable flags: refuse without proving. No proof of "≥ k" can be built.
+    if (slots.length < input.k) {
+      throw new FlowError('insufficient', `only ${valid.length} independent fresh flags of this typology; ${input.k} required`);
+    }
+
+    const escalation = encryptObject(d.guardianGroupKey, {
+      identifier: canonical,
+      tag: T,
+      leafIndices: slots.map((s) => s.index),
+      institutionId: d.institutionId,
+      caseRef: input.caseRef,
+    });
+    const attKey = toHex(hash.attestationKey(T, BigInt(epoch), BigInt(input.typology)));
+
+    onState('proving');
+    try {
+      const res = await d.chain.sponsoredCall(input.k === 3 ? 'attestCorroboration3' : 'attestCorroboration2', [
+        T,
+        BigInt(input.typology),
+        slots.map(({ pseudonym, epoch: e, ctHash, path }) => ({ pseudonym, epoch: e, ctHash, path })),
+        await d.chain.institutionPath(),
+        escalation.ctHash,
+      ]);
+      d.store.recordEscalation(attKey, toHex(escalation.ct), input.caseRef, input.k);
+      return { attKey, txId: res.txId, blockHeight: res.blockHeight, epoch };
+    } catch (e) {
+      const msg = assertMessage(e);
+      // A revocation or epoch roll landed in between: rebuild from fresh state once.
+      if ((msg === 'slot not in tree' || msg === 'mixed roots') && attempt === 0) continue;
+      const known: Record<string, string> = {
+        dup: 'duplicate-pseudonym',
+        'self excluded': 'self-excluded',
+        'already attested': 'already-attested',
+        policy: 'policy',
+        'slot expired': 'expired',
+      };
+      if (known[msg]) throw new FlowError(known[msg], msg);
+      throw new FlowError('chain', msg, true);
+    }
+  }
+};
+
+// ── revoke (§5.2) ──
+// T is never stored, so the bank re-derives it from the identifier in its own case system.
+
+export const revoke = async (
+  d: FlowDeps,
+  input: { flagIndex: number; identifier: string },
+  onState: (s: 'tagging' | 'proving' | 'sponsoring') => void = () => {},
+): Promise<{ txId: string; blockHeight: number }> => {
+  const f = d.store.flag(input.flagIndex);
+  if (!f) throw new FlowError('not-found', 'no flag of this institution at that index');
+  if (f.revoked) throw new FlowError('already-revoked', 'this flag was already revoked');
+  onState('tagging');
+  const T = await d.oprf.tag(canonicalise(input.identifier));
+  const leaf = hash.flagLeaf(T, hash.pseudonym(d.institutionSecret, T), BigInt(f.epoch), BigInt(f.typology), Buffer.from(f.ct_hash, 'hex'));
+
+  const { ledger } = await d.chain.snapshot();
+  const path = ledger.flags.findPathForLeaf(leaf);
+  if (!path || Number(d.chain.pathIndex(path)) !== f.flag_index) {
+    throw new FlowError('identifier-mismatch', 'that identifier does not reproduce this flag');
+  }
+  const epoch = Number(ledger.currentEpoch);
+  const slot = d.store.nextSlot('revoke', epoch);
+
+  onState('proving');
+  try {
+    const res = await d.chain.sponsoredCall('revokeFlag', [
+      T,
+      BigInt(f.epoch),
+      BigInt(f.typology),
+      Buffer.from(f.ct_hash, 'hex'),
+      BigInt(f.flag_index),
+      BigInt(slot),
+      path,
+      await d.chain.institutionPath(),
+    ]);
+    d.store.commitSlot('revoke', epoch, slot);
+    d.store.markRevoked(f.flag_index);
+    return res;
+  } catch (e) {
+    const msg = assertMessage(e);
+    if (msg === 'quota') throw new FlowError('quota', 'revocation quota for this epoch is exhausted');
+    throw new FlowError('chain', msg, true);
+  }
+};

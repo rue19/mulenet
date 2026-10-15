@@ -16,6 +16,8 @@ const SCHEMA = `
   );
   create table if not exists quota_slots (kind text not null, epoch integer not null, used integer not null,
                                           primary key (kind, epoch));
+  create table if not exists escalations (att_key text primary key, ct text not null, case_ref text not null,
+                                          k integer not null, created integer not null);
   create table if not exists outbox (id text primary key, record text not null, attempts integer not null default 0,
                                      created integer not null);
 `;
@@ -93,6 +95,18 @@ export const openStore = (path = ':memory:') => {
         'insert into quota_slots(kind, epoch, used) values (?, ?, ?) on conflict(kind, epoch) do update set used = max(used, excluded.used)',
       ).run(kind, epoch, slot + 1);
     },
+    recordEscalation: (attKey: string, ct: string, caseRef: string, k: number) =>
+      db.prepare('insert into escalations(att_key, ct, case_ref, k, created) values (?, ?, ?, ?, ?) on conflict(att_key) do nothing').run(
+        attKey,
+        ct,
+        caseRef,
+        k,
+        now(),
+      ),
+    escalation: (attKey: string) =>
+      db.prepare('select att_key, ct, case_ref, k from escalations where att_key = ?').get(attKey) as
+        | { att_key: string; ct: string; case_ref: string; k: number }
+        | undefined,
     outboxAdd: (id: string, record: string) =>
       db.prepare('insert into outbox(id, record, created) values (?, ?, ?) on conflict(id) do nothing').run(id, record, now()),
     outboxPending: () => db.prepare('select id, record, attempts from outbox order by created').all() as { id: string; record: string; attempts: number }[],
