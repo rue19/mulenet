@@ -46,6 +46,8 @@ const { app } = buildBankNode({
   },
   // In the demo the bank's own systems and the console sign as the bank itself.
   clients: new Map([[bankId, fromHex(me.signingPublicKey)]]),
+  regulator: { id: cfg.regulator.id, publicKey: fromHex(cfg.regulator.signingPublicKey) },
+  demoHooks: process.env.MULENET_DEMO_HOOKS === '1',
   // The bank wallet must hold zero DUST: the consortium sponsor pays every fee.
   health: async () => ({ walletDust: balances(await waitForSync(chain.wallet)).dust.toString() }),
 });

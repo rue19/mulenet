@@ -16,7 +16,8 @@
     "@mulenet/contract": "0.1.0",
     "@midnight-ntwrk/midnight-js-protocol": "4.1.1",
     "@midnight-ntwrk/midnight-js-level-private-state-provider": "4.1.1",
-    "@midnight-ntwrk/midnight-js-network-id": "4.1.1"
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1",
+    "fastify": "5.12.7"
   },
   "devDependencies": {
     "@mulenet/contract": "0.1.0"
