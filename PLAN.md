@@ -114,49 +114,11 @@ Each phase has an exit criterion. Nothing in a later phase starts until the gate
 
 **Exit:** I1–I7 green; adversarial suite green; property test green at 1,000+ runs.
 
-### Phase 4 — Core services, flag→check locally — §7.2, §7.3, §8.1–8.3
-- `packages/sdk`: `networks.ts` (§12.2), provider assembly, typed `MuleNetClient` (deploy/join/call/read ledger, `pathForLeaf`), retry-on-stale-root.
-- `services/oracle` ×3: Fastify, `POST /v1/evaluate` (batch ≤ 64), token bucket per institution, audit counters. mTLS deferred to a shared-secret header for local dev, mTLS in compose.
-- `services/relay`: SQLite, `PUT /v1/records`, `GET /v1/buckets/:b?sinceEpoch=`, content addressing, nightly Merkle snapshot.
-- `services/bank-node`: `POST /v1/flags`, `POST /v1/check`, `GET /v1/health`; encrypted level private state; **direct submission with its own funded local wallet first** (sponsor comes in Phase 6).
-- `infra/docker-compose.services.yml` + `scripts/bootstrap-local.ts` (deploy, register 3–4 institutions through governance, write configs).
+### Phases 4–9 — see `docs/plans/PHASES_4-9.md`
 
-**Exit:** on `undeployed`, Bank A and Bank B flag an account; Bank C's `/check` returns 2 distinct institutions.
+The detailed spec for Phases 4–9 is `docs/plans/PHASES_4-9.md` (15 Oct 2026). It supersedes the earlier Phase 4–9 outlines that used to be here. **Section numbers below (§) refer to that document.** The execution order and status live in **§5 of this file**.
 
-### Phase 5 — Attest, revoke, governance, warrants — §7.4–7.7, §8.5
-- Bank node: `POST /v1/attest`, `POST /v1/flags/:index/revoke`, escalation ciphertext.
-- `services/guardian` ×3: watch proposals/disclosures, approve via API, release decryption shares **only** for authorised `attKey`s, append-only release log.
-- Epoch keeper (cron) calling `advanceEpoch`.
-
-**Exit:** the full §18 script (flag ×3, negative paths, attest, revoke→count drops→re-attest fails, warrant 1-approval fails→2 approvals→decrypt) runs locally via a script.
-
-### Phase 6 — Sponsor + Preprod — §8.4, §12, §15
-- First, confirm wallet-sdk 1.2.0 sponsorship method names against the official example (§22.4).
-- `services/sponsor`: pre-flight (contract address, circuit allowlist, per-institution quota), wallet pool rotation, DUST monitoring, `DustDoubleSpend` resync, jitter/shuffle; bank nodes switch to zero-DUST unbalanced txs.
-- Deploy to Preprod via Blockfrost; run the §18 script; record each circuit's tx hash in `docs/RECEIPTS.md`.
-
-**Exit:** every circuit has a Preprod tx hash.
-
-### Phase 7 — Explorer + Console — §8.6, §9
-- `services/explorer`: indexer subscription → Postgres (or SQLite) tables `epochs, flag_counts, attestations, proposals, disclosures`.
-- `apps/console` (Next.js): Analyst, Regulator (approval counter, disabled execute until quorum), Transparency, Privacy X-ray, Judge mode (one button per §18 step, backed by simulated bank nodes).
-
-**Exit:** §18 runs end-to-end from the browser on Preprod with no terminal.
-
-### Phase 8 — Leak scanner, verify CLI, CI — §14.4, §14.5, §15.3
-- Leak scanner: gather indexer transcripts, state dump, relay DB, oracle logs, explorer DB; search bytes/hex/base64 for every test secret → fail on any hit. Shares its engine with Privacy X-ray. Closes I8.
-- `verify` CLI: `deployment`, `attestation`, `warrants`; compares verifier-key SHA-256s from the release.
-- GitHub Actions: PR (compile, version pin, typecheck, lint, all unit/adversarial/crypto/property/service tests), nightly local-dev integration + leak scanner, manual Preprod E2E.
-
-**Exit:** CI green; verifier passes against the Preprod deployment.
-
-### Phase 9 — Docs and submission — §10, §19, §21
-- README (pitch, quickstart, per-circuit privacy table, honest limits), `THREAT_MODEL.md`, `PRIVACY_BOUNDARIES.md`, `DEMO.md`, `WAVE3_CHANGES.md`, ADRs 0001–0010 (+ new ones from the spike).
-- Deck, 3-minute video.
-
----
-
-## 3. Schedule (14 working days; re-fit once the deadline is known)
+## 3. Original schedule (superseded by §10 of docs/plans/PHASES_4-9.md)
 
 | Day | Work |
 |---|---|
@@ -183,3 +145,72 @@ Each phase has an exit criterion. Nothing in a later phase starts until the gate
 | Sponsorship API differs from §8.4 | Phase 6 start | Read the official example first; fallback is self-funded fresh wallets per bank (loses fee privacy, L8) |
 | Preprod wallet sync / DUST slowness | Day 1 | Fund and warm sponsor wallets immediately |
 | Disk space | now | prune Docker build cache |
+
+---
+
+## 5. Execution plan, Phases 3-closeout → 9 (from 15 Oct 2026)
+
+Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow the plan doc: [AGENT], [PAIR] or [YOU].
+
+**Adjustments to the plan doc:**
+- **Timing typo:** line 9 quotes `submitFlag` timings for "attest". The measured `attestCorroboration3` is 8.1 s (BENCHMARKS.md).
+- **Disk:** the build cache was pruned on 14 Oct and about 11 GB is free. The node 0.22.3 and indexer 4.0.1 images are already gone.
+- **Proof-server image:** keep `proof-server:8.1.0`, because the local stack pins it.
+- **Proof server port:** 6301 locally, set through `MN_PROOF_SERVER`.
+- **Node version:** Node is v24.18, so `node:sqlite` (X3) is available unflagged.
+
+### A. Phase 3 closeout
+1. ▶ 3.1: 1,000-run property test.
+2. ✅ 3.2: Phase 3 commits pushed to `phase-3`. Merge to `main` once 3.1 passes.
+3. 3.3: commit `docs/TESTING.md`, with the seed policy.
+4. 3.4: `attestCorroboration2` test parity, plus a benchmark row (on the local chain).
+5. 3.5: ARCHITECTURE v1.2.
+6. 3.6 [YOU]: contract ownership session (§2.1).
+
+### B. Cross-cutting setup (§3)
+7. X1/X2/X5:
+   - `packages/sdk/src/api-types.ts` (zod)
+   - an Ed25519 request-signing helper with a replay cache
+   - a Fastify service skeleton with pino redaction
+8. R11: `npm approve-scripts` for `classic-level` and the other native modules. Commit `allowScripts`. Smoke-test opening a level store.
+9. X6: `infra/config/` layout plus the key-generation scripts (oracle shares, guardian keys, institution signing keys).
+
+### C. Phase 4: core services
+10. 4.1: oracle ×3 and the client library (`oprf-client`).
+11. 4.2: relay (`node:sqlite`, append-only, buckets, snapshot).
+12. 4.4: sponsor, local edition. Follow the private-party sponsorship flow (R1) exactly, with the genesis wallet as sponsor.
+13. 4.3: bank node, with boot sequence, durable job queue, flag and check flows, and the outbox.
+14. 4.5: `bootstrap-local.ts`.
+15. 4.6: integration test `flag-check`.
+16. 4.7: Docker topology and `npm run dev:up`.
+17. **P6-0 Preprod walking skeleton, as soon as DUST exists.** Blocked on [YOU] faucet and token.
+
+### D. Phase 5: attest, revoke, warrants
+18. 5.1 [PAIR] attest
+19. 5.2 revoke
+20. 5.4 epoch keeper
+21. 5.3 [PAIR] guardian daemon and `mulenet-gov`
+22. 5.5 demo integration test
+23. S6.1 [PAIR] linkability spike on the local network → ADR-0016
+
+### E. Phase 6: Preprod promotion (blocked on [YOU] faucet, token and VPS decision)
+24. P6-1 promote the services
+25. `demo` deployment
+26. P6-2 receipts
+27. ADR-0015 (maintenance authority)
+
+### F. Phase 7: explorer and console
+28. 7.1 explorer
+29. 7.3 X-ray engine
+30. 7.2 console: bank, regulator, transparency, xray, state, judge
+31. 7.5 hosting
+
+### G. Phase 8
+32. 8.1 leak scanner with self-test
+33. 8.2 `mulenet-verify`
+34. 8.3 CI: `ci.yml`, `nightly.yml`, `preprod.yml`
+
+### H. Phase 9: docs and submission (§9), mostly [YOU]/[PAIR]
+35. Docs and submission package
+
+**Still needed from you:** the Wave 3 deadline (UTC), faucet tNIGHT for the 3 sponsor addresses, the Blockfrost Preprod token, a VPS decision, and the 3.6 session.
