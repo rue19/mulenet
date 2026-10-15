@@ -4,7 +4,7 @@
 import { hash } from '@mulenet/crypto';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { pureCircuits as pc } from '../managed/mulenet/contract/index.js';
+import { pureCircuits as pc } from '../../managed/mulenet/contract/index.js';
 
 const b32 = fc.uint8Array({ minLength: 32, maxLength: 32 });
 const u8 = fc.bigInt({ min: 0n, max: 255n });

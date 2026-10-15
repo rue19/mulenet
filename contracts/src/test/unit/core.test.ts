@@ -2,8 +2,8 @@
 // Phase-1 spike coverage: every circuit's happy path plus the PLAN.md §1 design decisions.
 // The full invariant (I1–I8) and adversarial suites come in Phase 3.
 import { describe, expect, it } from 'vitest';
-import { pureCircuits as pc } from '../managed/mulenet/contract/index.js';
-import { KIND, World, bytes, eq, subject } from './world.js';
+import { pureCircuits as pc } from '../../managed/mulenet/contract/index.js';
+import { KIND, World, bytes, eq, subject } from '../world.js';
 
 const S = subject('acct:v1:IN:HDFC0001234:5010012');
 
