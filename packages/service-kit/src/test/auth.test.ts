@@ -52,6 +52,17 @@ describe('request signatures', () => {
     expect(r.json().message).toBe('replayed request');
   });
 
+  it('two identical legitimate requests in the same second both pass (per-request nonce)', async () => {
+    const a = app();
+    expect((await post(a, signRequest(bank, 'POST', '/v1/evaluate', body))).statusCode).toBe(200);
+    expect((await post(a, signRequest(bank, 'POST', '/v1/evaluate', body))).statusCode).toBe(200);
+  });
+
+  it('rejects a tampered nonce', async () => {
+    const h = signRequest(bank, 'POST', '/v1/evaluate', body);
+    expect((await post(app(), { ...h, 'x-mulenet-nonce': 'ab'.repeat(16) })).statusCode).toBe(401);
+  });
+
   it('rejects a timestamp outside ±60 s', async () => {
     const now = Math.floor(Date.now() / 1000);
     const h = signRequest(bank, 'POST', '/v1/evaluate', body, now - 61);

@@ -6,6 +6,7 @@ import { AuthError, type Verifier } from './auth.js';
 // Never log these, wherever they appear (decision X1).
 export const REDACT = [
   'req.headers["x-mulenet-sig"]',
+  'req.headers["x-mulenet-nonce"]',
   'req.headers.authorization',
   '*.seed',
   '*.secret',
