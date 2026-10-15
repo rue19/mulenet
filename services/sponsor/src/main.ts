@@ -20,19 +20,18 @@ import {
   waitForSync,
   type WalletContext,
 } from '@mulenet/sdk';
-import { loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
+import { dataDir, loadDeployment, loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import type { FinalizedTransaction } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { createAccounting } from './accounting.js';
 import { WalletPool } from './pool.js';
 import { preflight } from './preflight.js';
 import { ROLE_CIRCUITS, buildSponsor, type Role } from './server.js';
-import { startKeeper } from './keeper.js';
+import { keeperTick, startKeeper } from './keeper.js';
 
 const network = (process.env.MULENET_NETWORK ?? 'undeployed') as 'undeployed' | 'preprod';
 const cfg = loadPublicConfig(network);
-const contractAddress =
-  cfg.contractAddress ?? JSON.parse(readFileSync(resolve(repoRoot(), `infra/state/${network}.json`), 'utf8')).contractAddress;
+const contractAddress = loadDeployment(network).contractAddress;
 const net = networks[network]();
 
 const seeds =
@@ -71,8 +70,9 @@ const { app } = buildSponsor<FinalizedTransaction>({
     return { tx, result: preflight(tx, { contractAddress, allowedCircuits: allowed }) };
   },
   pool: pool as WalletPool<unknown, FinalizedTransaction>,
-  accounting: createAccounting({ dbPath: resolve(repoRoot(), `.data/${network}/sponsor.db`) }),
+  accounting: createAccounting({ dbPath: resolve(dataDir(network), 'sponsor.db') }),
   windowMs: Number(process.env.SPONSOR_WINDOW_MS ?? (network === 'undeployed' ? 2_000 : 30_000)),
+  keeper: async () => ({ outcome: keeperMode === '0' ? 'disabled' : await keeperTick({ ...keeperDeps, marginSeconds: 0 }) }),
 });
 // Epoch keeper: the first sponsor wallet builds advanceEpoch as its own "user" side, then the
 // pool attaches DUST and submits, keeping one in-flight transaction per wallet.
@@ -81,7 +81,7 @@ const keeperProviders = makeProviders(
   net,
   await walletAndMidnightProvider(keeperWallet),
   levelPrivateStateProvider({
-    midnightDbName: resolve(repoRoot(), `.data/${network}/keeper/private-state`),
+    midnightDbName: resolve(dataDir(network), 'keeper/private-state'),
     privateStateStoreName: 'mulenet-keeper',
     signingKeyStoreName: 'mulenet-keeper-keys',
     privateStoragePasswordProvider: () => 'Keeper-has-no-secrets-1!',
@@ -89,14 +89,17 @@ const keeperProviders = makeProviders(
   } as never),
 );
 await joinAs(keeperProviders, contractAddress, 'keeper', {});
-const stopKeeper = process.env.SPONSOR_KEEPER === '0' ? () => {} : startKeeper({
+const keeperDeps = {
   nextEpochAt: async () => (await readLedger(keeperProviders, contractAddress)).nextEpochAt,
   advance: async () => {
     const { bytes } = await prepareSponsoredCall(keeperProviders, keeperWallet, contractAddress, 'keeper', 'advanceEpoch', []);
     return (await pool.submit(deserializeFinalized(bytes))).txId;
   },
-  log: (msg, extra) => app.log.info(extra ?? {}, msg),
-});
+  log: (msg: string, extra?: Record<string, unknown>) => app.log.info(extra ?? {}, msg),
+};
+// SPONSOR_KEEPER: '1' (default) rolls epochs automatically; 'manual' only via /v1/keeper/advance; '0' off.
+const keeperMode = process.env.SPONSOR_KEEPER ?? '1';
+const stopKeeper = keeperMode === '1' ? startKeeper(keeperDeps) : () => {};
 
 app.addHook('onClose', async () => {
   stopKeeper();

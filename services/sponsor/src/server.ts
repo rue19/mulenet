@@ -27,6 +27,8 @@ export type SponsorOptions<T> = {
   windowMs?: number;
   maxBatch?: number;
   logger?: boolean;
+  // Rolls the epoch now if block time allows (the contract refuses early rolls anyway).
+  keeper?: () => Promise<{ outcome: string }>;
 };
 
 export const buildSponsor = <T>(o: SponsorOptions<T>) => {
@@ -69,6 +71,12 @@ export const buildSponsor = <T>(o: SponsorOptions<T>) => {
       req.log.warn({ caller, circuit: parsed.data.circuit, err: e instanceof Error ? e.message : String(e) }, 'submission failed');
       return reply.code(502).send({ reason: 'submit-failed', detail: e instanceof Error ? e.message.slice(0, 200) : 'unknown' });
     }
+  });
+
+  app.post('/v1/keeper/advance', { preHandler: requireSignature(verify) }, async (req, reply) => {
+    if (o.callers.get(req.caller!)?.role !== 'guardian') return reply.code(403).send({ reason: 'forbidden' });
+    if (!o.keeper) return reply.code(404).send({ reason: 'keeper disabled' });
+    return o.keeper();
   });
 
   app.get('/v1/status', async () => ({ ...o.pool.status(), queueDepth: batcher.depth }));
