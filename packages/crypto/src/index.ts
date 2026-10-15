@@ -7,3 +7,4 @@ export * from './oprf.js';
 export * from './dleq.js';
 export * from './elgamal.js';
 export * from './records.js';
+export * from './cbor.js';
