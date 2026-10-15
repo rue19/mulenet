@@ -13,7 +13,8 @@ const Y = acct();
 
 let stack: Stack;
 beforeAll(async () => {
-  stack = await startStack(NET, ['bank-a', 'bank-b', 'bank-c', 'bank-e']);
+  // Keeper off: an epoch roll mid-test would make the same-epoch duplicate check meaningless.
+  stack = await startStack(NET, { banks: ['bank-a', 'bank-b', 'bank-c', 'bank-e'], keeper: false });
 });
 afterAll(async () => {
   await stack?.stop();
