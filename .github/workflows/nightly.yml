@@ -1,0 +1,62 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      MN_PROOF_SERVER: http://127.0.0.1:6301
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: midnightntwrk/setup-compact-action@836895c8fffbbea6bd986af2b17e8941ff29d1f8
+        with:
+          compact-version: '0.31.1'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm install -g npm@12
+      - run: npm ci
+      - run: npm run compact
+      - run: npm run build -w contracts -w packages/crypto -w packages/service-kit -w packages/sdk
+
+      - name: Local Midnight network (node, indexer, proof server on :6301)
+        run: MN_PROOF_SERVER_PORT=6301 docker compose -f infra/local/standalone.yml -p mulenet-local up -d --wait
+
+      - name: Consortium keys and main deployment
+        run: |
+          npx tsx packages/sdk/scripts/keygen.ts undeployed
+          (cd packages/sdk && npx tsx scripts/bootstrap.ts undeployed --skip bank-e)
+
+      - name: Phase 4 integration (flag → check)
+        run: cd tests/integration && npx vitest run src/flag-check.test.ts
+
+      - name: Phase 5 integration (the demo script)
+        run: cd tests/integration && npx vitest run src/demo.test.ts
+
+      - name: Reference-model property test (1,000 runs)
+        run: npm test -w contracts -- src/test/property
+        env:
+          PROPERTY_RUNS: '1000'
+          PROPERTY_SHRINK: '0'
+
+      - name: Full leak scan (service logs, databases, identifiers and tags recorded by the tests)
+        run: npm run leak-scan -- undeployed
+
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nightly-artifacts
+          path: |
+            test-artifacts/leak-scan
+            .data/**/logs
