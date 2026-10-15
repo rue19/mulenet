@@ -1,0 +1,20 @@
+{
+  "name": "@mulenet/guardian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mulenet/crypto": "0.1.0",
+    "@mulenet/sdk": "0.1.0",
+    "@mulenet/service-kit": "0.1.0",
+    "@mulenet/contract": "0.1.0",
+    "fastify": "5.12.7",
+    "zod": "4.6.7"
+  }
+}
