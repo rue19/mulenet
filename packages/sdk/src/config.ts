@@ -2,8 +2,8 @@
 // Consortium configuration (decision X6). Public material lives in infra/config/<network>.json
 // and is safe to commit; every secret lives in infra/secrets/<network>/<party>.json (gitignored,
 // mode 0600) and is loaded only by the party that owns it.
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
 import { hex } from './api-types.js';
 
@@ -45,7 +45,19 @@ export const InstitutionSecret = z.object({
 });
 export const RegulatorSecret = z.object({ id: z.string(), signingSecretKey: hex(32) });
 
-export const repoRoot = () => resolve(import.meta.dirname, '../../..');
+// The repo root holds infra/ (config, secrets, state). MULENET_ROOT overrides; otherwise walk up
+// from this module (or from the working directory when bundled, e.g. by Next.js) to versions.json.
+export const repoRoot = (): string => {
+  if (process.env.MULENET_ROOT) return process.env.MULENET_ROOT;
+  for (const start of [import.meta.dirname, process.cwd()]) {
+    if (!start) continue;
+    for (let d = start; ; d = dirname(d)) {
+      if (existsSync(resolve(d, 'versions.json')) && existsSync(resolve(d, 'infra'))) return d;
+      if (dirname(d) === d) break;
+    }
+  }
+  throw new Error('cannot locate the MuleNet repo root (set MULENET_ROOT)');
+};
 export const configPath = (network: string) => resolve(repoRoot(), 'infra/config', `${network}.json`);
 export const secretPath = (network: string, party: string) => resolve(repoRoot(), 'infra/secrets', network, `${party}.json`);
 
