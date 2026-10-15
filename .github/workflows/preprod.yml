@@ -1,0 +1,39 @@
+name: Preprod verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      address:
+        description: Deployed MuleNet contract address (hex)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BLOCKFROST_PROJECT_ID: ${{ secrets.BLOCKFROST_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: midnightntwrk/setup-compact-action@836895c8fffbbea6bd986af2b17e8941ff29d1f8
+        with:
+          compact-version: '0.31.1'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm install -g npm@12
+      - run: npm ci
+      - run: npm run compact
+      - run: npm run build -w contracts -w packages/crypto
+      - name: Deployment matches the release
+        run: npx tsx verify/src/cli.ts deployment --network preprod --address ${{ inputs.address }}
+      - name: Every warrant has a quorum
+        run: npx tsx verify/src/cli.ts warrants --network preprod --address ${{ inputs.address }}
+      - name: Every receipt resolves
+        run: npx tsx verify/src/cli.ts receipts docs/RECEIPTS.md --network preprod
