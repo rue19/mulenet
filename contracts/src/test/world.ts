@@ -41,6 +41,7 @@ export type FlagRecord = {
   index: bigint;
   leaf: Uint8Array;
   pseudonym: Uint8Array;
+  pathAtFlag: MerklePath; // snapshot right after insertion; goes stale on revoke or epoch roll
 };
 
 export const bytes = (n = 32): Uint8Array => new Uint8Array(randomBytes(n));
@@ -192,18 +193,16 @@ export class World {
 
   // ── flags ──
 
+  // Quota slots are only marked used after the transaction succeeds: a failed transaction
+  // does not consume its nullifier on-chain, and the bank node must behave the same way.
+  private slotKey = (name: string) => `${name}:${this.state.currentEpoch}`;
+
   nextQuotaSlot(name: string): bigint {
-    const key = `${name}:${this.state.currentEpoch}`;
-    const slot = this.quotaUsed.get(key) ?? 0n;
-    this.quotaUsed.set(key, slot + 1n);
-    return slot;
+    return this.quotaUsed.get(this.slotKey(name)) ?? 0n;
   }
 
   nextRevokeSlot(name: string): bigint {
-    const key = `${name}:${this.state.currentEpoch}`;
-    const slot = this.revokeQuotaUsed.get(key) ?? 0n;
-    this.revokeQuotaUsed.set(key, slot + 1n);
-    return slot;
+    return this.revokeQuotaUsed.get(this.slotKey(name)) ?? 0n;
   }
 
   flag(name: string, t: Uint8Array, typology = 1n, opts: { quotaSlot?: bigint } = {}): FlagRecord {
@@ -212,17 +211,12 @@ export class World {
     const epoch = this.state.currentEpoch;
     const index = this.state.flags.firstFree();
     const quotaSlot = opts.quotaSlot ?? this.nextQuotaSlot(name);
+    const key = this.slotKey(name);
     this.asBank(name).call('submitFlag', t, typology, ctHash, quotaSlot, this.institutionPath(name));
+    if (quotaSlot >= (this.quotaUsed.get(key) ?? 0n)) this.quotaUsed.set(key, quotaSlot + 1n);
     const pseudonym = pc.pseudonym(sk, t);
-    const rec: FlagRecord = {
-      t,
-      epoch,
-      typology,
-      ctHash,
-      index,
-      leaf: pc.flagLeaf(t, pseudonym, epoch, typology, ctHash),
-      pseudonym,
-    };
+    const leaf = pc.flagLeaf(t, pseudonym, epoch, typology, ctHash);
+    const rec: FlagRecord = { t, epoch, typology, ctHash, index, leaf, pseudonym, pathAtFlag: this.flagPath(index, leaf) };
     this.flagsOf.set(name, [...(this.flagsOf.get(name) ?? []), rec]);
     return rec;
   }
@@ -235,22 +229,44 @@ export class World {
 
   revoke(name: string, t: Uint8Array, opts: { index?: bigint; path?: MerklePath } = {}): this {
     const r = this.lastFlag(name, t);
-    return this.asBank(name).call(
+    const key = this.slotKey(name);
+    const slot = this.nextRevokeSlot(name);
+    this.asBank(name).call(
       'revokeFlag',
       r.t,
       r.epoch,
       r.typology,
       r.ctHash,
       opts.index ?? r.index,
-      this.nextRevokeSlot(name),
+      slot,
       opts.path ?? this.flagPath(r.index, r.leaf),
       this.institutionPath(name),
     );
+    this.revokeQuotaUsed.set(key, slot + 1n);
+    return this;
   }
 
   slotOf(name: string, t: Uint8Array): FlagSlot {
-    const r = this.lastFlag(name, t);
-    return { pseudonym: r.pseudonym, epoch: r.epoch, ctHash: r.ctHash, path: this.flagPath(r.index, r.leaf) };
+    return this.slotFrom(this.lastFlag(name, t));
+  }
+
+  // A slot for any record; defaults to a fresh path against the current tree.
+  slotFrom(r: FlagRecord, path: MerklePath = this.flagPath(r.index, r.leaf)): FlagSlot {
+    return { pseudonym: r.pseudonym, epoch: r.epoch, ctHash: r.ctHash, path };
+  }
+
+  // Runs an action and returns its failure message, or null on success.
+  outcome(fn: () => unknown): string | null {
+    try {
+      fn();
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  hasLeaf(leaf: Uint8Array): boolean {
+    return this.state.flags.findPathForLeaf(leaf) !== undefined;
   }
 
   attest(name: string, t: Uint8Array, slots: FlagSlot[], typology = 1n, escalationCtHash = bytes()): Uint8Array {
