@@ -14,3 +14,4 @@ midnight-level-db/
 logs/
 infra/secrets/
 .data/
+infra/config/undeployed.json
