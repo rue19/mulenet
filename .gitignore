@@ -17,3 +17,5 @@ infra/secrets/
 infra/config/undeployed.json
 infra/state/undeployed.json
 infra/state/*-demo.json
+apps/console/.next/
+apps/console/next-env.d.ts
