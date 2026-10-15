@@ -93,6 +93,8 @@ export const joinAs = async (
   privateStateId: string,
   privateState: MuleNetPrivateState,
 ) => {
+  // Level-backed providers scope state per contract and refuse access until this is set.
+  providers.privateStateProvider.setContractAddress(contractAddress);
   await providers.privateStateProvider.set(privateStateId, privateState);
   return findDeployedContract(providers as never, {
     contractAddress,
