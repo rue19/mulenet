@@ -166,8 +166,16 @@ describe('reference model', () => {
         run(ops, stats);
       }),
       // PROPERTY_SHRINK=0 reports the first counterexample immediately instead of shrinking it
-      // (shrinking replays whole simulated contracts and can take hours at 1,000 runs).
-      { numRuns: RUNS, endOnFailure: process.env.PROPERTY_SHRINK === '0', seed: process.env.PROPERTY_SEED ? Number(process.env.PROPERTY_SEED) : undefined },
+      // (shrinking replays whole simulated contracts and can take hours). PROPERTY_TIME_LIMIT_MS
+      // turns a run that takes too long into a reported failure with its seed, never a silent hang.
+      {
+        numRuns: RUNS,
+        verbose: 2,
+        endOnFailure: process.env.PROPERTY_SHRINK === '0',
+        seed: process.env.PROPERTY_SEED ? Number(process.env.PROPERTY_SEED) : undefined,
+        interruptAfterTimeLimit: process.env.PROPERTY_TIME_LIMIT_MS ? Number(process.env.PROPERTY_TIME_LIMIT_MS) : undefined,
+        markInterruptAsFailure: true,
+      },
     );
     // Guard against a vacuous pass: both outcomes must actually have been exercised.
     expect(stats.attestOk).toBeGreaterThan(0);
