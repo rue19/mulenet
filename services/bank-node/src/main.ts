@@ -3,10 +3,9 @@
 import { resolve } from 'node:path';
 import { fromHex } from '@mulenet/crypto';
 import { balances, networks, waitForSync } from '@mulenet/sdk';
-import { InstitutionSecret, loadPublicConfig, loadSecret, repoRoot } from '@mulenet/sdk/config';
+import { InstitutionSecret, dataDir as deploymentDataDir, loadDeployment, loadPublicConfig, loadSecret } from '@mulenet/sdk/config';
 import { createOprfClient } from '@mulenet/sdk/oprf-client';
 import { createRelayClient } from '@mulenet/sdk/relay-client';
-import { readFileSync } from 'node:fs';
 import { createChain } from './chain.js';
 import { buildBankNode } from './server.js';
 import { openStore } from './store.js';
@@ -17,10 +16,9 @@ const cfg = loadPublicConfig(network);
 const secret = loadSecret(InstitutionSecret, network, bankId);
 const me = cfg.institutions.find((i) => i.id === bankId);
 if (!me) throw new Error(`${bankId} is not in the consortium config`);
-const contractAddress =
-  cfg.contractAddress ?? JSON.parse(readFileSync(resolve(repoRoot(), `infra/state/${network}.json`), 'utf8')).contractAddress;
+const contractAddress = loadDeployment(network).contractAddress;
 
-const dataDir = process.env.BANK_DATA ?? resolve(repoRoot(), `.data/${network}/${bankId}`);
+const dataDir = process.env.BANK_DATA ?? resolve(deploymentDataDir(network), bankId);
 const signingKey = { id: bankId, secretKey: fromHex(secret.signingSecretKey) };
 const chain = await createChain({
   net: networks[network](),

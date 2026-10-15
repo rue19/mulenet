@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // GUARDIAN_INDEX=1 MULENET_NETWORK=undeployed tsx src/main.ts
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { MuleNet } from '@mulenet/contract';
 import { fromHex, toHex } from '@mulenet/crypto';
 import { createSponsoredChain, networks } from '@mulenet/sdk';
-import { GuardianSecret, loadPublicConfig, loadSecret, repoRoot } from '@mulenet/sdk/config';
+import { GuardianSecret, dataDir, loadDeployment, loadPublicConfig, loadSecret } from '@mulenet/sdk/config';
 import { buildGuardian } from './server.js';
 
 const pc = MuleNet.pureCircuits;
@@ -16,8 +15,7 @@ const cfg = loadPublicConfig(network);
 const me = cfg.guardians.members.find((g) => g.index === index);
 if (!me) throw new Error(`guardian ${index} is not in the consortium config`);
 const secret = loadSecret(GuardianSecret, network, `guardian-${index}`);
-const contractAddress =
-  cfg.contractAddress ?? JSON.parse(readFileSync(resolve(repoRoot(), `infra/state/${network}.json`), 'utf8')).contractAddress;
+const contractAddress = loadDeployment(network).contractAddress;
 
 // The guardian's (zero-DUST) wallet seed and store password are derived from its secret.
 const derive = (label: string) => createHash('sha256').update(`mulenet:guardian:${label}:v1`).update(fromHex(secret.guardianSecret)).digest('hex');
@@ -30,7 +28,7 @@ const chain = await createSponsoredChain({
   privateState: { guardianSecret },
   walletSeed: derive('wallet'),
   storagePassword: `Mg-${derive('store').slice(0, 24)}-X!`,
-  dataDir: resolve(repoRoot(), `.data/${network}/guardian-${index}`),
+  dataDir: resolve(dataDir(network), `guardian-${index}`),
   sponsorUrl: cfg.sponsor.url,
   signingKey,
 });
@@ -52,7 +50,7 @@ const { app } = buildGuardian({
   regulator: { id: cfg.regulator.id, publicKey: fromHex(cfg.regulator.signingPublicKey) },
   // The guardian's own signing key is its operator key (the console signs as each operator in the demo).
   operator: { id: signingKey.id, publicKey: fromHex(me.signingPublicKey) },
-  dbPath: resolve(repoRoot(), `.data/${network}/guardian-${index}/guardian.db`),
+  dbPath: resolve(dataDir(network), `guardian-${index}/guardian.db`),
 });
 app.addHook('onClose', () => chain.close());
 await app.listen({ host: process.env.HOST ?? '127.0.0.1', port: Number(process.env.PORT ?? new URL(me.url).port) });

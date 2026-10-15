@@ -54,3 +54,14 @@ export const loadPublicConfig = (network: string, path = configPath(network)): P
 
 export const loadSecret = <T extends z.ZodTypeAny>(schema: T, network: string, party: string, path = secretPath(network, party)): z.infer<T> =>
   schema.parse(JSON.parse(readFileSync(path, 'utf8')));
+
+// ── deployments ──
+// Several contract instances can share one consortium config (e.g. `main` and a short-epoch
+// `demo`, decision X9). MULENET_DEPLOYMENT picks one; each has its own state file and data dir.
+export const deploymentName = (): string => process.env.MULENET_DEPLOYMENT ?? 'main';
+const suffix = () => (deploymentName() === 'main' ? '' : `-${deploymentName()}`);
+export const statePath = (network: string) => resolve(repoRoot(), 'infra/state', `${network}${suffix()}.json`);
+export const dataDir = (network: string) => resolve(repoRoot(), '.data', `${network}${suffix()}`);
+
+export type DeploymentState = { network: string; contractAddress: string; deployedAtBlock?: number; params?: Record<string, number> };
+export const loadDeployment = (network: string): DeploymentState => JSON.parse(readFileSync(statePath(network), 'utf8'));
