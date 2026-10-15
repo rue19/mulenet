@@ -4,12 +4,12 @@
 // Usage: MN_PROOF_SERVER=http://127.0.0.1:6301 npx tsx scripts/bootstrap.ts [undeployed] [--epoch 300] [--ttl 2] [--k 2] [--skip bank-e]
 // --skip leaves institutions unregistered (the demo onboards bank-e live through governance).
 // MULENET_DEPLOYMENT=demo writes infra/state/<network>-demo.json instead of the main deployment.
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { MuleNet, type MuleNetPrivateState } from '@mulenet/contract';
 import { fromHex } from '@mulenet/crypto';
 import { inMemoryPrivateStateProvider } from '@midnight-ntwrk/testkit-js';
-import { GuardianSecret, InstitutionSecret, deploymentName, loadPublicConfig, loadSecret, statePath } from '../src/config.js';
+import { GuardianSecret, InstitutionSecret, dataDir, deploymentName, loadPublicConfig, loadSecret, statePath } from '../src/config.js';
 import { GENESIS_SEED, buildWallet, deployMuleNet, ensureDust, joinAs, makeProviders, networks, readLedger, walletAndMidnightProvider } from '../src/index.js';
 
 const pc = MuleNet.pureCircuits;
@@ -71,6 +71,9 @@ const state = {
   params: { epochLength: Number(epochLength), ttl: Number(arg('ttl', 2)), k: Number(arg('k', 2)), threshold: cfg.guardians.threshold },
   registered: cfg.institutions.filter((i) => !skip.has(i.id)).map((i) => i.id),
 };
+// A new deployment is a new contract: services' local state for this deployment name (bank
+// flag ledgers, relay records, explorer read model, private-state stores) belongs to the old one.
+rmSync(dataDir(network), { recursive: true, force: true });
 const out = statePath(network);
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(state, null, 2) + '\n');
