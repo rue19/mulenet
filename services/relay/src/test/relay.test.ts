@@ -1,21 +1,17 @@
 import { encodeRecord, openBucket, recordKeys, sealRecord, toHex, type FlagRecordBody } from '@mulenet/crypto';
 import { createRelayClient } from '@mulenet/sdk/relay-client';
 import { generateSigningKey, signRequest } from '@mulenet/service-kit';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildRelay, merkleRoot } from '../server.js';
 
 const bank = generateSigningKey('bank-a');
 const members = new Map([[bank.id, bank.publicKey]]);
 const T = new Uint8Array(randomBytes(32));
-const body = (index: number): FlagRecordBody => ({
-  p: new Uint8Array(randomBytes(32)),
-  epoch: 3,
-  typology: 1,
-  ctHash: new Uint8Array(randomBytes(32)),
-  index,
-  flaggedAt: 1_800_000_000,
-});
+const body = (index: number): FlagRecordBody => {
+  const ct = new Uint8Array(randomBytes(200));
+  return { p: new Uint8Array(randomBytes(32)), epoch: 3, typology: 1, ctHash: new Uint8Array(createHash('sha256').update(ct).digest()), ct, index, flaggedAt: 1_800_000_000 };
+};
 const running: { close(): Promise<unknown> }[] = [];
 afterEach(async () => {
   await Promise.all(running.splice(0).map((a) => a.close()));
@@ -124,7 +120,7 @@ describe('relay', () => {
     const b = body(5);
     await createRelayClient({ urls: [url], signingKey: bank }).put(sealRecord(T, b));
     const dump = Buffer.concat((db.prepare('select id, data from records').all() as { id: string; data: Uint8Array }[]).flatMap((r) => [Buffer.from(r.id), Buffer.from(r.data)]));
-    for (const secret of [T, b.p, b.ctHash, recordKeys(T).recKey]) {
+    for (const secret of [T, b.p, b.ctHash, b.ct, recordKeys(T).recKey]) {
       expect(dump.includes(Buffer.from(secret))).toBe(false);
       expect(dump.toString('latin1').includes(toHex(secret))).toBe(false);
     }
