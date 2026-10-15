@@ -239,7 +239,7 @@ record    = {
   v: 1, bucket, lookupKey,
   nonce: 24 bytes,
   body: XChaCha20-Poly1305(recKey, nonce,
-          CBOR{ p, epoch, typology, ctHash, index, flaggedAt },
+          CBOR{ p, epoch, typology, ctHash, ct, index, flaggedAt },
           aad = v ‖ bucket ‖ lookupKey)       // relay cannot re-file records
 }
 ```
@@ -955,3 +955,11 @@ mulenet/
 - Depth 20 confirmed. Capacity is 1,048,576 flags per deployment. Measured on a laptop: `attestCorroboration3` 8.1 s, `submitFlag` 5.4–5.8 s warm and 12.3 s cold, `revokeFlag` 4.4 s (§13.2, BENCHMARKS.md).
 - The depth-16 comparison benchmark was **skipped deliberately**. Depth 20 already sits far inside every budget, so the depth-16 numbers could not change the decision.
 - The contract test suite is complete: invariants I1–I7, an adversarial file per threat in §11, parity between `attestCorroboration2` and `attestCorroboration3`, and a reference-model property test (docs/TESTING.md).
+
+**v1.3 (15 Oct 2026).** Phases 4–5 built; details that changed while building.
+- **Relay records carry the case ciphertext** (`ct`, encrypted to the guardian group key) next to `ctHash`, and opening a record checks `SHA-256(ct) = ctHash`. The v1.2 flow needed the regulator to fetch ciphertexts for round 2 but specified no store for them. A record holder learns nothing new, because `ct` is encrypted to the guardians (§5.4, §7.6).
+- **Revocation takes the identifier.** `T` is never stored, so `POST /v1/flags/:index/revoke` carries the identifier from the bank's own case record. The node checks it reproduces the stored leaf before proving (§7.5).
+- **Round-2 disclosure goes one record per request.** Guardians refuse a whole request if any record is not an on-chain flag, so the regulator asks per record. A revoked flag is refused on its own and logged.
+- **Guardians check, they don't trust.** Before releasing a share, every guardian verifies that the warrant exists on-chain; that `attKey = H(T, epoch, typology)` using the attestation's own epoch and typology; that each record decrypts under `T`; that each leaf is in the tree at its index; and that `SHA-256(ct)` equals the committed `ctHash` (services/guardian/src/policy.ts).
+- **Sponsorship from day one.** Every bank and guardian transaction goes through the sponsor, and bank wallets hold zero DUST. The epoch keeper runs inside the sponsor.
+- **Request authentication.** Ed25519 signatures cover method, path, timestamp, a 16-byte nonce and the body hash, with a ±60 s window and a replay cache. The nonce is needed because Ed25519 is deterministic, so identical retries would otherwise collide in the replay cache.
