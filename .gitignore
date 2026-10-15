@@ -16,3 +16,4 @@ infra/secrets/
 .data/
 infra/config/undeployed.json
 infra/state/undeployed.json
+infra/state/*-demo.json
