@@ -39,13 +39,13 @@ jobs:
       - name: Compile contract
         run: npm run compact
 
+      - name: Build packages
+        run: npm run build -w contracts -w packages/crypto -w packages/service-kit -w packages/sdk
+
       - name: Reproducible verifier keys
         run: |
           npx tsx verify/src/cli.ts keys --write docs/verifier-keys.json
           git diff --exit-code docs/verifier-keys.json
-
-      - name: Build packages
-        run: npm run build -w contracts -w packages/crypto -w packages/service-kit -w packages/sdk
 
       - name: Typecheck
         run: |
