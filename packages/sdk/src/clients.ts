@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-// Signed client for a bank node's internal API, used by integration tests and the console.
+// Signed clients for the bank-node, guardian and relay APIs, used by the console's server routes
+// and the integration tests. Secrets are read from infra/secrets: server-side only.
 import { randomUUID } from 'node:crypto';
 import { fromHex } from '@mulenet/crypto';
-import { InstitutionSecret, loadPublicConfig, loadSecret } from '@mulenet/sdk/config';
-import type { CheckResult, Job } from '@mulenet/sdk/api-types';
+import { GuardianSecret, InstitutionSecret, RegulatorSecret, loadPublicConfig, loadSecret } from './config.js';
+import type { CheckResult, Job } from './api-types.js';
 import { signRequest } from '@mulenet/service-kit';
 
 export const bankClient = (network: string, bankId: string) => {
@@ -56,7 +57,6 @@ export const bankClient = (network: string, bankId: string) => {
   };
 };
 
-import { GuardianSecret, RegulatorSecret } from '@mulenet/sdk/config';
 
 type Signer = { id: string; secretKey: Uint8Array };
 

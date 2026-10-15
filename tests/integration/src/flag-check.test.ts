@@ -2,7 +2,7 @@
 // as its own process and every transaction sponsored.
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { bankClient } from './client.js';
+import { bankClient } from '@mulenet/sdk/clients';
 import { startStack, type Stack } from './stack.js';
 
 const NET = 'undeployed';

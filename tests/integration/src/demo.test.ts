@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { combineAndDecrypt, decodeCbor, fromHex, openRecord, recordKeys, toHex, decodeRecord, type CaseDetails, type EscalationDetails } from '@mulenet/crypto';
 import { repoRoot } from '@mulenet/sdk/config';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { bankClient, guardianOperator, regulatorClient } from './client.js';
+import { bankClient, guardianOperator, regulatorClient } from '@mulenet/sdk/clients';
 import { startStack, type Stack } from './stack.js';
 
 const NET = 'undeployed';

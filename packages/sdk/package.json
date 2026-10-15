@@ -65,6 +65,11 @@
       "types": "./dist/relay-client.d.ts",
       "import": "./dist/relay-client.js",
       "default": "./dist/relay-client.js"
+    },
+    "./clients": {
+      "types": "./dist/clients.d.ts",
+      "import": "./dist/clients.js",
+      "default": "./dist/clients.js"
     }
   }
 }
