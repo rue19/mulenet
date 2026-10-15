@@ -6,6 +6,8 @@
 //   bucket    = big-endian u16 of lookupKey[0..2]          (65,536 buckets)
 //   recKey    = HKDF-SHA256(T, info = "mulenet:rec:v1")
 //   body      = XChaCha20-Poly1305(recKey, nonce, CBOR(FlagRecordBody), aad = v ‖ bucket ‖ lookupKey)
+// The body carries the guardian-encrypted case details (ct) so a warrant can retrieve them;
+// opening a record checks SHA-256(ct) = ctHash, the value committed in the on-chain leaf.
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -20,6 +22,7 @@ export type FlagRecordBody = {
   epoch: number;
   typology: number;
   ctHash: Bytes;
+  ct: Bytes; // case-detail ciphertext, encrypted to the guardian group key; SHA-256(ct) = ctHash
   index: number; // leaf position in the flag tree
   flaggedAt: number; // unix seconds
 };
@@ -53,11 +56,16 @@ export const openRecord = (tag: Bytes, rec: FlagRecord): FlagRecordBody => {
   const { lookupKey, bucket, recKey } = recordKeys(tag);
   if (rec.v !== RECORD_VERSION) throw new RecordError('unsupported record version');
   if (rec.bucket !== bucket || !equal(rec.lookupKey, lookupKey)) throw new RecordError('record is for another subject');
+  let body: FlagRecordBody;
   try {
-    return decodeCbor<FlagRecordBody>(xchacha20poly1305(recKey, rec.nonce, aad(rec.v, rec.bucket, rec.lookupKey)).decrypt(rec.body));
+    body = decodeCbor<FlagRecordBody>(xchacha20poly1305(recKey, rec.nonce, aad(rec.v, rec.bucket, rec.lookupKey)).decrypt(rec.body));
   } catch {
     throw new RecordError('authentication failed');
   }
+  const asBytes = (b: unknown) => new Uint8Array(b as ArrayLike<number>);
+  body = { ...body, p: asBytes(body.p), ctHash: asBytes(body.ctHash), ct: asBytes(body.ct) };
+  if (!equal(sha256(body.ct), body.ctHash)) throw new RecordError('ciphertext does not match its hash');
+  return body;
 };
 
 // Records in a fetched bucket that belong to this subject. Others are ignored, not errors.

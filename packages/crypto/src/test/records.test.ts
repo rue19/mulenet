@@ -1,3 +1,4 @@
+import { sha256 } from '@noble/hashes/sha2.js';
 import { randomBytes } from '@noble/hashes/utils.js';
 import { describe, expect, it } from 'vitest';
 import { equal, toHex } from '../bytes.js';
@@ -14,7 +15,8 @@ import {
 } from '../records.js';
 
 const T = randomBytes(32);
-const body: FlagRecordBody = { p: randomBytes(32), epoch: 12, typology: 1, ctHash: randomBytes(32), index: 1234, flaggedAt: 1_800_000_000 };
+const ct = randomBytes(200);
+const body: FlagRecordBody = { p: randomBytes(32), epoch: 12, typology: 1, ctHash: sha256(ct), ct, index: 1234, flaggedAt: 1_800_000_000 };
 
 describe('relay records', () => {
   it('derives stable, distinct keys from T', () => {
@@ -62,5 +64,12 @@ describe('relay records', () => {
 
   it('rejects a wrong-length tag', () => {
     expect(() => recordKeys(randomBytes(31))).toThrow('32 bytes');
+  });
+});
+
+describe('record ciphertext binding', () => {
+  it('rejects a record whose ct does not hash to its ctHash', () => {
+    const rec = sealRecord(T, { ...body, ctHash: randomBytes(32) });
+    expect(() => openRecord(T, rec)).toThrow('does not match');
   });
 });
