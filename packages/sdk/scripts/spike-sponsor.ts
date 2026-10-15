@@ -165,6 +165,15 @@ const main = async () => {
   };
   const [a1, a2, b1] = txs.map((t) => windows(t.bytes));
   const linking = [...a1].filter((w) => a2.has(w) && !b1.has(w));
+  if (process.env.SPIKE_DUMP) {
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    mkdirSync(process.env.SPIKE_DUMP, { recursive: true });
+    txs.forEach((t, i) => writeFileSync(`${process.env.SPIKE_DUMP}/tx${i}-${t.bank}.hex`, Buffer.from(t.bytes).toString('hex')));
+    for (const w of linking) {
+      const at = Buffer.from(txs[0].bytes).indexOf(Buffer.from(w, 'hex'));
+      log(`window ${w} at offset ${at} of ${txs[0].bytes.length} in A#1; context ${Buffer.from(txs[0].bytes.subarray(Math.max(0, at - 24), at + 40)).toString('hex')}`);
+    }
+  }
   log(`S6.1 key scan: ${hits.length === 0 ? '0 hits' : hits.join('; ')}`);
   log(`S6.1 A-only shared 16-byte windows: ${linking.length}${linking.length ? ' e.g. ' + linking.slice(0, 3).join(', ') : ''}`);
 
