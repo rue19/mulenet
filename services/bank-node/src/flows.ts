@@ -81,6 +81,19 @@ const assertMessage = (e: unknown) => {
   return /failed assert: ([^\n]+)/.exec(m)?.[1] ?? m;
 };
 
+// The caller's membership path. An institution missing from the registry at the current
+// generation is refused here, before anything is proven or sent to the sponsor.
+const memberPath = async (d: FlowDeps) => {
+  try {
+    return await d.chain.institutionPath();
+  } catch (e) {
+    if (/not bound|not a member|not registered/.test(e instanceof Error ? e.message : String(e))) {
+      throw new FlowError('not-a-member', 'this institution is not a registered member');
+    }
+    throw e;
+  }
+};
+
 // ── outbox: relay writes are retried until the relay has the record ──
 
 export const flushOutbox = async (d: Pick<FlowDeps, 'store' | 'relay'>) => {
@@ -117,12 +130,13 @@ export const flag = async (d: FlowDeps, input: FlagInput, onState: (s: 'tagging'
   const { ct, ctHash } = encryptObject(d.guardianGroupKey, details);
   const leaf = hash.flagLeaf(T, p, BigInt(epoch), BigInt(input.typology), ctHash);
 
+  const instPath = await memberPath(d);
   onState('proving');
   let slot = d.store.nextSlot('flag', epoch);
   let res;
   for (let attempt = 0; ; attempt++) {
     try {
-      res = await d.chain.sponsoredCall('submitFlag', [T, BigInt(input.typology), ctHash, BigInt(slot), await d.chain.institutionPath()]);
+      res = await d.chain.sponsoredCall('submitFlag', [T, BigInt(input.typology), ctHash, BigInt(slot), instPath]);
       break;
     } catch (e) {
       const msg = assertMessage(e);
@@ -280,7 +294,7 @@ export const attest = async (
         T,
         BigInt(input.typology),
         slots.map(({ pseudonym, epoch: e, ctHash, path }) => ({ pseudonym, epoch: e, ctHash, path })),
-        await d.chain.institutionPath(),
+        await memberPath(d),
         escalation.ctHash,
       ]);
       d.store.recordEscalation(attKey, toHex(escalation.ct), input.caseRef, input.k);
@@ -335,7 +349,7 @@ export const revoke = async (
       BigInt(f.flag_index),
       BigInt(slot),
       path,
-      await d.chain.institutionPath(),
+      await memberPath(d),
     ]);
     d.store.commitSlot('revoke', epoch, slot);
     d.store.markRevoked(f.flag_index);
