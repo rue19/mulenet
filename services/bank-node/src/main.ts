@@ -2,7 +2,7 @@
 // BANK_ID=bank-a MULENET_NETWORK=undeployed tsx src/main.ts
 import { resolve } from 'node:path';
 import { fromHex } from '@mulenet/crypto';
-import { networks } from '@mulenet/sdk';
+import { balances, networks, waitForSync } from '@mulenet/sdk';
 import { InstitutionSecret, loadPublicConfig, loadSecret, repoRoot } from '@mulenet/sdk/config';
 import { createOprfClient } from '@mulenet/sdk/oprf-client';
 import { createRelayClient } from '@mulenet/sdk/relay-client';
@@ -46,6 +46,8 @@ const { app } = buildBankNode({
   },
   // In the demo the bank's own systems and the console sign as the bank itself.
   clients: new Map([[bankId, fromHex(me.signingPublicKey)]]),
+  // The bank wallet must hold zero DUST: the consortium sponsor pays every fee.
+  health: async () => ({ walletDust: balances(await waitForSync(chain.wallet)).dust.toString() }),
 });
 app.addHook('onClose', () => chain.close());
 await app.listen({ host: process.env.HOST ?? '127.0.0.1', port: Number(process.env.PORT ?? new URL(me.url).port) });
