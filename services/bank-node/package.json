@@ -1,0 +1,24 @@
+{
+  "name": "@mulenet/bank-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mulenet/crypto": "0.1.0",
+    "@mulenet/sdk": "0.1.0",
+    "@mulenet/service-kit": "0.1.0",
+    "@mulenet/contract": "0.1.0",
+    "@midnight-ntwrk/midnight-js-protocol": "4.1.1",
+    "@midnight-ntwrk/midnight-js-level-private-state-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1"
+  },
+  "devDependencies": {
+    "@mulenet/contract": "0.1.0"
+  }
+}
