@@ -63,7 +63,7 @@ const main = async () => {
   const deployed = await deployMuleNet(providers, 'deployer', {
     guardianLeaves: guardianSecrets.map((g) => pc.guardianLeaf(g)) as [Uint8Array, Uint8Array, Uint8Array],
     threshold: 2n,
-    k: 3n,
+    k: 2n, // policy k = 2 lets both attest2 and attest3 run
     epochLength: 86_400n,
     firstRollAt: now + 86_400n,
     ttl: 30n,
@@ -141,6 +141,25 @@ const main = async () => {
   );
   const attKey = pc.attestationKey(S, (await L()).currentEpoch, 1n);
   log(`attestation k=${(await L()).attestations.lookup(attKey).k}`);
+
+  // ── attest k=2 on a second subject (benchmark row for attestCorroboration2) ──
+  const S2 = rand();
+  const rec2: Record<string, { ctHash: Uint8Array; leaf: Uint8Array; epoch: bigint }> = {};
+  for (const n of ['A', 'B']) {
+    const ctHash = rand();
+    const epoch = (await L()).currentEpoch;
+    rec2[n] = { ctHash, epoch, leaf: pc.flagLeaf(S2, pc.pseudonym(bankSecrets[n], S2), epoch, 1n, ctHash) };
+    await bank[n].callTx.submitFlag(S2, 1n, ctHash, 1n, await instPath(n));
+  }
+  const slots2 = await (async () => {
+    const l = await L();
+    return ['A', 'B'].map((n) => {
+      const path = l.flags.findPathForLeaf(rec2[n].leaf);
+      if (!path) throw new Error(`flag of ${n} on S2 missing`);
+      return { pseudonym: pc.pseudonym(bankSecrets[n], S2), epoch: rec2[n].epoch, ctHash: rec2[n].ctHash, path };
+    });
+  })();
+  await timed('attestCorroboration2', async () => bank.D.callTx.attestCorroboration2(S2, 1n, slots2, await instPath('D'), rand()));
 
   // ── revoke C ──
   const revIndex = BigInt(pc.pathIndex(slots[2].path));
