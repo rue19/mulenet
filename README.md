@@ -52,7 +52,7 @@ Full leakage register and threat model: [docs/ARCHITECTURE.md](docs/ARCHITECTURE
 | Leak scan | 39 secrets × all encodings, across every service log and database: **0 findings** |
 | Privacy X-ray | account identifiers: **0 hits** across every public transaction and state; public values (contract address, institution leaves) are found, so the zero is real |
 | Proving time (laptop, depth-20 tree) | `attestCorroboration3` **8.1 s**, `submitFlag` **5.5 s** warm, `revokeFlag` 4.4 s ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)) |
-| Sponsorship | bank wallets hold **0 DUST** before and after; a tampered sponsored transaction is rejected by the network; no bank wallet key appears in the transaction bytes (first S6.1 scan) |
+| Sponsorship | bank wallets hold **0 DUST** before and after; a tampered sponsored transaction is rejected by the network; no bank wallet key appears in the transaction bytes (two local S6.1 scans, ADR 0016; Preprod confirmation pending) |
 | Reproducibility | verifier keys are deterministic; CI rebuilds them and compares with [docs/verifier-keys.json](docs/verifier-keys.json) |
 
 ## Honest limits
