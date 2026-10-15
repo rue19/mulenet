@@ -160,38 +160,38 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 - **Node version:** Node is v24.18, so `node:sqlite` (X3) is available unflagged.
 
 ### A. Phase 3 closeout
-1. ▶ 3.1: 1,000-run property test.
-2. ✅ 3.2: Phase 3 commits pushed to `phase-3`. Merge to `main` once 3.1 passes.
-3. 3.3: commit `docs/TESTING.md`, with the seed policy.
-4. 3.4: `attestCorroboration2` test parity, plus a benchmark row (on the local chain).
-5. 3.5: ARCHITECTURE v1.2.
+1. ▶ 3.1: 1,000-run property test (still running; the first 1,000-run attempt hit a fixed 10-minute timeout, which is now scaled to the run count).
+2. ✅ 3.2: pushed to `phase-3` throughout. Merge to `main` once 3.1 passes.
+3. ✅ 3.3: `docs/TESTING.md`, with the seed policy.
+4. ✅ 3.4: `attest2` parity (9 tests). The benchmark row is added to the spike but not yet re-measured.
+5. ✅ 3.5: ARCHITECTURE v1.2.
 6. 3.6 [YOU]: contract ownership session (§2.1).
 
 ### B. Cross-cutting setup (§3)
-7. X1/X2/X5:
+7. ✅ X1/X2/X5:
    - `packages/sdk/src/api-types.ts` (zod)
    - an Ed25519 request-signing helper with a replay cache
    - a Fastify service skeleton with pino redaction
-8. R11: `npm approve-scripts` for `classic-level` and the other native modules. Commit `allowScripts`. Smoke-test opening a level store.
-9. X6: `infra/config/` layout plus the key-generation scripts (oracle shares, guardian keys, institution signing keys).
+8. ✅ R11: `npm approve-scripts` for `classic-level` and the other native modules. Commit `allowScripts`. Smoke-test opening a level store.
+9. ✅ X6: `infra/config/` layout plus the key-generation scripts (oracle shares, guardian keys, institution signing keys).
 
 ### C. Phase 4: core services
-10. 4.1: oracle ×3 and the client library (`oprf-client`).
-11. 4.2: relay (`node:sqlite`, append-only, buckets, snapshot).
-12. 4.4: sponsor, local edition. Follow the private-party sponsorship flow (R1) exactly, with the genesis wallet as sponsor.
-13. 4.3: bank node, with boot sequence, durable job queue, flag and check flows, and the outbox.
-14. 4.5: `bootstrap-local.ts`.
-15. 4.6: integration test `flag-check`.
-16. 4.7: Docker topology and `npm run dev:up`.
+10. ✅ 4.1: oracle ×3 and the client library (`oprf-client`), 10 tests.
+11. ✅ 4.2: relay (`node:sqlite`, append-only, buckets, snapshot), 9 tests. Mirror *client* union done; mirror *server* mode not built (cut-list item 2).
+12. ✅ 4.4: sponsor, local edition, 16 tests, plus the local sponsorship spike (zero-DUST banks; tampered tx rejected). Follow the private-party sponsorship flow (R1) exactly, with the genesis wallet as sponsor.
+13. ✅ 4.3: bank node, with boot sequence, durable job queue, flag and check flows, and the outbox, 20 tests against the contract simulator.
+14. ✅ 4.5: `scripts/bootstrap.ts`, with `--skip` and named deployments.
+15. ✅ 4.6: integration test `flag-check`, green twice in a row on fresh processes.
+16. ◐ 4.7: Dockerfile and services compose written but not yet built. `npm run dev:up` (process runner) works.
 17. **P6-0 Preprod walking skeleton, as soon as DUST exists.** Blocked on [YOU] faucet and token.
 
 ### D. Phase 5: attest, revoke, warrants
-18. 5.1 [PAIR] attest
-19. 5.2 revoke
-20. 5.4 epoch keeper
-21. 5.3 [PAIR] guardian daemon and `mulenet-gov`
-22. 5.5 demo integration test
-23. S6.1 [PAIR] linkability spike on the local network → ADR-0016
+18. ✅ 5.1 [PAIR] attest
+19. ✅ 5.2 revoke
+20. ✅ 5.4 epoch keeper (auto, manual and off modes)
+21. ✅ 5.3 [PAIR] guardian daemon (8 tests). Governance runs through each guardian's operator API rather than a separate `mulenet-gov` CLI.
+22. ▶ 5.5 demo integration test
+23. ◐ S6.1 [PAIR]: first pass done (0 bank wallet keys in tx bytes). One 16-byte window shared by a bank's two txs (`0000…009a`) still needs explaining → ADR-0016
 
 ### E. Phase 6: Preprod promotion (blocked on [YOU] faucet, token and VPS decision)
 24. P6-1 promote the services
