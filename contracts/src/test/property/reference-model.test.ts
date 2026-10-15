@@ -171,5 +171,5 @@ describe('reference model', () => {
     expect(stats.attestOk).toBeGreaterThan(0);
     expect(stats.attestFail).toBeGreaterThan(0);
     console.log(`reference model: ${RUNS} runs, ${stats.attestOk} attestations accepted, ${stats.attestFail} rejected`);
-  }, 600_000);
+  }, Math.max(600_000, RUNS * 5_000));
 });
