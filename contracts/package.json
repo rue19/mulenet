@@ -18,7 +18,8 @@
     "compact:fast": "compact compile --skip-zk src/mulenet.compact src/managed/mulenet",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && cp -R src/managed dist/managed && cp src/mulenet.compact dist/",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:property:long": "PROPERTY_RUNS=1000 vitest run src/test/property"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0"
