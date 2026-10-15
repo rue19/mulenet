@@ -73,3 +73,20 @@ describe('record ciphertext binding', () => {
     expect(() => openRecord(T, rec)).toThrow('does not match');
   });
 });
+
+import { dealGuardianKeys, encryptObject } from '../elgamal.js';
+
+describe('record size', () => {
+  it('a worst-case record (100-char case ref, long contact) stays under the relay’s 1 KB limit', () => {
+    const g = dealGuardianKeys(2, 3);
+    const { ct, ctHash } = encryptObject(g.groupPublicKey, {
+      institutionId: 'bank-with-a-long-identifier',
+      caseRef: 'C'.repeat(100),
+      typology: 4,
+      evidenceSummary: 'E'.repeat(120),
+      contactRef: 'fraud-operations-desk@bank-with-a-long-identifier',
+    });
+    const rec = sealRecord(randomBytes(32), { p: randomBytes(32), epoch: 2 ** 32 - 1, typology: 4, ctHash, ct, index: 2 ** 20 - 1, flaggedAt: 2 ** 32 - 1 });
+    expect(encodeRecord(rec).length).toBeLessThan(1024);
+  });
+});
