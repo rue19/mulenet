@@ -6,7 +6,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createWriteStream, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
+import { dataDir, loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
 
 export type Stack = { stop(): Promise<void>; urls: Record<string, string> };
 
@@ -24,13 +24,13 @@ const waitHealthy = async (name: string, url: string, timeoutMs: number) => {
   throw new Error(`${name} did not become healthy at ${url}`);
 };
 
-export type StackOptions = { banks?: string[]; guardians?: boolean; keeper?: boolean };
+export type StackOptions = { banks?: string[]; guardians?: boolean; keeper?: boolean | 'manual'; demoHooks?: boolean };
 
 export const startStack = async (network = 'undeployed', opts: StackOptions = {}): Promise<Stack> => {
   const banks = opts.banks;
   const root = repoRoot();
   const cfg = loadPublicConfig(network);
-  const logDir = resolve(root, `.data/${network}/logs`);
+  const logDir = resolve(dataDir(network), 'logs');
   mkdirSync(logDir, { recursive: true });
   const children: { name: string; proc: ChildProcess }[] = [];
   const urls: Record<string, string> = {};
@@ -59,11 +59,11 @@ export const startStack = async (network = 'undeployed', opts: StackOptions = {}
 
   for (const o of cfg.oracles.members) run(`oracle-${o.index}`, 'services/oracle', { ORACLE_INDEX: String(o.index) }, o.url);
   run('relay', 'services/relay', {}, cfg.relay.url);
-  run('sponsor', 'services/sponsor', { SPONSOR_KEEPER: opts.keeper === false ? '0' : '1' }, cfg.sponsor.url);
+  run('sponsor', 'services/sponsor', { SPONSOR_KEEPER: opts.keeper === 'manual' ? 'manual' : opts.keeper === false ? '0' : '1' }, cfg.sponsor.url);
   // Light services first; the sponsor and banks sync wallets and take longer.
   await Promise.all(Object.entries(urls).filter(([n]) => n !== 'sponsor').map(([n, u]) => waitHealthy(n, u, 60_000)));
   await waitHealthy('sponsor', cfg.sponsor.url, 300_000);
-  for (const b of cfg.institutions.filter((i) => !banks || banks.includes(i.id))) run(b.id, 'services/bank-node', { BANK_ID: b.id }, b.url);
+  for (const b of cfg.institutions.filter((i) => !banks || banks.includes(i.id))) run(b.id, 'services/bank-node', { BANK_ID: b.id, MULENET_DEMO_HOOKS: opts.demoHooks ? '1' : '0' }, b.url);
   if (opts.guardians) {
     for (const g of cfg.guardians.members) run(`guardian-${g.index}`, 'services/guardian', { GUARDIAN_INDEX: String(g.index) }, g.url);
   }
