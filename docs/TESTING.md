@@ -106,5 +106,5 @@ fast-check prints the seed and shrunk counterexample of any failure. When the pr
 | Attestations accepted / rejected | 475 / 3,236 |
 | Time per chunk | 108–128 s, peak memory ≈ 0.75–0.80 GB |
 
-Single-process 1,000-run jobs grew past 3 GB and slowed sharply as memory accumulated across runs. Chunks keep memory flat and turn any failure into one replayable seed:
+Single-process 1,000-run jobs fail around run 650 with `CompactError: RuntimeError: unreachable`. That is not a divergence: each simulated world leaks about 6.7 MB of runtime (WebAssembly) memory (≈ 750 MB at 100 runs, 4.4 GB at 650), and 4 GB is the 32-bit WebAssembly ceiling. Every failing log names that runtime error rather than a model/contract disagreement. Chunks keep memory flat and turn any failure into one replayable seed:
 `PROPERTY_SEED=<seed> PROPERTY_RUNS=100 npx vitest run src/test/property` (in `contracts/`).
