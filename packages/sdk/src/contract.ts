@@ -16,6 +16,7 @@ import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config
 import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-js';
 import type { MidnightProvider, PrivateStateProvider, ProofProvider, WalletProvider } from '@midnight-ntwrk/midnight-js-types';
 import type { NetworkConfig } from './networks.js';
+import { balanceOwnValueAndFinalize, type WalletContext } from './wallet.js';
 
 export type MuleNetContract = MuleNet.Contract<MuleNetPrivateState>;
 export type CircuitId = keyof MuleNet.ImpureCircuits<MuleNetPrivateState> & string;
@@ -128,3 +129,20 @@ export const buildCall = <K extends CircuitId>(
 
 export const submitBuilt = (providers: MuleNetProviders, unprovenTx: unknown, circuitId: CircuitId) =>
   submitTx(providers as never, { unprovenTx, circuitId } as never);
+
+// USER side of a sponsored call: build against current state, prove locally, balance own value,
+// sign and bind. Returns the bound transaction as bytes for the sponsor.
+export const prepareSponsoredCall = async (
+  providers: MuleNetProviders,
+  wallet: WalletContext,
+  contractAddress: string,
+  privateStateId: string,
+  circuitId: CircuitId,
+  args: unknown[],
+  ttl: Date = new Date(Date.now() + 30 * 60_000),
+): Promise<{ bytes: Uint8Array; publicTranscript: unknown }> => {
+  const unsubmitted = await buildCall(providers, contractAddress, privateStateId, circuitId, args);
+  const unbound = await providers.proofProvider.proveTx(unsubmitted.private.unprovenTx as never);
+  const finalized = await balanceOwnValueAndFinalize(wallet, unbound as never, ttl);
+  return { bytes: finalized.serialize(), publicTranscript: unsubmitted.public.publicTranscript };
+};

@@ -117,3 +117,31 @@ export const walletAndMidnightProvider = async (ctx: WalletContext): Promise<Wal
     submitTx: (tx: ledger.FinalizedTransaction) => ctx.wallet.submitTransaction(tx),
   };
 };
+
+// ── fee sponsorship (example-private-party pattern; docs/plans/PHASES_4-9.md R1) ──
+
+// USER side: balance only the caller's own value (never DUST), sign, bind. A wallet with zero
+// DUST can run this. What it returns is a bound transaction the sponsor can only add fees to.
+export const balanceOwnValueAndFinalize = async (ctx: WalletContext, tx: UnboundTransaction, ttl: Date) => {
+  const recipe = await ctx.wallet.balanceUnboundTransaction(
+    tx,
+    { shieldedSecretKeys: ctx.shieldedSecretKeys, dustSecretKey: ctx.dustSecretKey },
+    { ttl, tokenKindsToBalance: ['shielded', 'unshielded'] },
+  );
+  const signed = await ctx.wallet.signRecipe(recipe, (payload) => ctx.unshieldedKeystore.signData(payload));
+  return ctx.wallet.finalizeRecipe(signed);
+};
+
+// SPONSOR side: attach a DUST fee offer to an already-bound transaction and nothing else.
+export const addDustFeesAndFinalize = async (ctx: WalletContext, tx: ledger.FinalizedTransaction, ttl: Date) => {
+  const recipe = await ctx.wallet.balanceFinalizedTransaction(
+    tx,
+    { shieldedSecretKeys: ctx.shieldedSecretKeys, dustSecretKey: ctx.dustSecretKey },
+    { ttl, tokenKindsToBalance: ['dust'] },
+  );
+  const signed = await ctx.wallet.signRecipe(recipe, (payload) => ctx.unshieldedKeystore.signData(payload));
+  return ctx.wallet.finalizeRecipe(signed);
+};
+
+export const deserializeFinalized = (bytes: Uint8Array): ledger.FinalizedTransaction =>
+  ledger.Transaction.deserialize<ledger.SignatureEnabled, ledger.Proof, ledger.Binding>('signature', 'proof', 'binding', bytes);
