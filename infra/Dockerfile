@@ -1,6 +1,7 @@
 # One image for every MuleNet service; the command picks the service (§4.7).
 # Build from the repo root after `npm run compact` (the compiled contract and keys are copied in):
-#   docker build -f infra/Dockerfile -t mulenet/services .
+#   docker build -f infra/Dockerfile --target services -t mulenet/services .
+# (Always pass --target: without it Docker builds the last stage, which is the console.)
 FROM node:22-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -21,7 +22,7 @@ COPY contracts contracts
 COPY packages packages
 RUN npm run build -w contracts -w packages/crypto -w packages/service-kit -w packages/sdk
 
-FROM node:22-slim
+FROM node:22-slim AS services
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app /app
