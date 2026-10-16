@@ -30,3 +30,25 @@ USER node
 # e.g. docker run mulenet/services services/oracle
 ENTRYPOINT ["sh", "-c", "cd \"$0\" && exec npx tsx src/main.ts"]
 CMD ["services/oracle"]
+
+# ── console (Next.js standalone) ──
+#   docker build -f infra/Dockerfile --target console -t mulenet/console .
+FROM deps AS console-deps
+COPY apps/console/package.json apps/console/
+RUN npm install --no-audit --no-fund -w apps/console
+
+FROM console-deps AS console-build
+COPY tsconfig.base.json ./
+COPY contracts contracts
+COPY packages packages
+COPY apps/console apps/console
+RUN npm run build -w contracts -w packages/crypto -w packages/service-kit -w packages/sdk && npm run build -w apps/console
+
+FROM node:22-slim AS console
+WORKDIR /app
+ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
+COPY --from=console-build /app/apps/console/.next/standalone ./
+COPY --from=console-build /app/apps/console/.next/static ./apps/console/.next/static
+COPY versions.json ./
+USER node
+CMD ["node", "apps/console/server.js"]

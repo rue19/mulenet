@@ -28,6 +28,20 @@ export type StackOptions = { banks?: string[]; guardians?: boolean; keeper?: boo
 
 export const startStack = async (network = 'undeployed', opts: StackOptions = {}): Promise<Stack> => {
   const banks = opts.banks;
+  // MULENET_EXTERNAL_STACK=1: test an already-running stack (e.g. docker compose) instead of spawning one.
+  if (process.env.MULENET_EXTERNAL_STACK === '1') {
+    const cfg = loadPublicConfig(network);
+    const urls: Record<string, string> = {
+      relay: cfg.relay.url,
+      sponsor: cfg.sponsor.url,
+      ...Object.fromEntries(cfg.oracles.members.map((o) => [`oracle-${o.index}`, o.url])),
+      ...Object.fromEntries(cfg.institutions.filter((i) => !banks || banks.includes(i.id)).map((i) => [i.id, i.url])),
+      ...(opts.guardians ? Object.fromEntries(cfg.guardians.members.map((g) => [`guardian-${g.index}`, g.url])) : {}),
+      ...(opts.explorer ? { explorer: 'http://127.0.0.1:7600' } : {}),
+    };
+    await Promise.all(Object.entries(urls).map(([n, u]) => waitHealthy(n, u, 600_000)));
+    return { urls, stop: async () => {} };
+  }
   const root = repoRoot();
   const cfg = loadPublicConfig(network);
   const logDir = resolve(dataDir(network), 'logs');

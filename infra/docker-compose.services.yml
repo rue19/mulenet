@@ -11,6 +11,7 @@ x-service: &service
   environment: &env
     MULENET_ROOT: /app
     MULENET_NETWORK: undeployed
+    MULENET_DEPLOYMENT: ${MULENET_DEPLOYMENT:-main}
     MN_PROOF_SERVER: http://127.0.0.1:6301
   volumes:
     - ../infra/config:/app/infra/config:ro
@@ -29,12 +30,26 @@ services:
   oracle-2: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '2' } }
   oracle-3: { <<: *service, command: services/oracle, environment: { <<: *env, ORACLE_INDEX: '3' } }
   relay: { <<: *service, command: services/relay }
-  sponsor: { <<: *service, command: services/sponsor }
-  bank-a: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-a }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
-  bank-b: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-b }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
-  bank-c: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-c }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
-  bank-d: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-d }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
-  bank-e: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-e }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  sponsor: { <<: *service, command: services/sponsor, environment: { <<: *env, SPONSOR_KEEPER: '${SPONSOR_KEEPER:-1}' } }
+  bank-a: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-a, MULENET_DEMO_HOOKS: '${MULENET_DEMO_HOOKS:-0}' }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-b: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-b, MULENET_DEMO_HOOKS: '${MULENET_DEMO_HOOKS:-0}' }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-c: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-c, MULENET_DEMO_HOOKS: '${MULENET_DEMO_HOOKS:-0}' }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-d: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-d, MULENET_DEMO_HOOKS: '${MULENET_DEMO_HOOKS:-0}' }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  bank-e: { <<: *service, command: services/bank-node, environment: { <<: *env, BANK_ID: bank-e, MULENET_DEMO_HOOKS: '${MULENET_DEMO_HOOKS:-0}' }, depends_on: [sponsor, relay, oracle-1, oracle-2, oracle-3] }
+  guardian-1: { <<: *service, command: services/guardian, environment: { <<: *env, GUARDIAN_INDEX: '1' }, depends_on: [sponsor] }
+  guardian-2: { <<: *service, command: services/guardian, environment: { <<: *env, GUARDIAN_INDEX: '2' }, depends_on: [sponsor] }
+  guardian-3: { <<: *service, command: services/guardian, environment: { <<: *env, GUARDIAN_INDEX: '3' }, depends_on: [sponsor] }
+  explorer: { <<: *service, command: services/explorer }
+  console:
+    image: mulenet/console
+    build: { context: .., dockerfile: infra/Dockerfile, target: console }
+    network_mode: host
+    restart: unless-stopped
+    environment: { MULENET_ROOT: /app, MULENET_NETWORK: undeployed, MULENET_DEPLOYMENT: '${MULENET_DEPLOYMENT:-main}', HOSTNAME: 127.0.0.1 }
+    volumes:
+      - ../infra/config:/app/infra/config:ro
+      - ../infra/state:/app/infra/state:ro
+      - ../infra/secrets:/app/infra/secrets:ro
 
 volumes:
   mulenet-data: {}

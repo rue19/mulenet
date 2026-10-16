@@ -17,7 +17,8 @@ let stack: Stack;
 beforeAll(async () => {
   recordSecret('demo.identifier', { text: X });
   // Fresh demo deployment: banks A–D registered, bank E deliberately not.
-  execFileSync('npx', ['tsx', 'scripts/bootstrap.ts', NET, '--epoch', '60', '--ttl', '1', '--k', '2', '--skip', 'bank-e'], {
+  // With an external stack the demo deployment is bootstrapped before the containers start.
+  if (process.env.MULENET_EXTERNAL_STACK !== '1') execFileSync('npx', ['tsx', 'scripts/bootstrap.ts', NET, '--epoch', '60', '--ttl', '1', '--k', '2', '--skip', 'bank-e'], {
     cwd: resolve(repoRoot(), 'packages/sdk'),
     env: { ...process.env, MN_PROOF_SERVER: process.env.MN_PROOF_SERVER ?? 'http://127.0.0.1:6301' },
     stdio: 'ignore',
