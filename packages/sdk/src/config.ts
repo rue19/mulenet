@@ -73,7 +73,10 @@ export const loadSecret = <T extends z.ZodTypeAny>(schema: T, network: string, p
 export const deploymentName = (): string => process.env.MULENET_DEPLOYMENT ?? 'main';
 const suffix = () => (deploymentName() === 'main' ? '' : `-${deploymentName()}`);
 export const statePath = (network: string) => resolve(repoRoot(), 'infra/state', `${network}${suffix()}.json`);
-export const dataDir = (network: string) => resolve(repoRoot(), '.data', `${network}${suffix()}`);
+// Per-deployment data is namespaced by contract address: a new contract (fresh bootstrap) always
+// gets fresh bank ledgers, relay records and explorer state, and nothing old is ever deleted.
+export const dataDir = (network: string) =>
+  resolve(repoRoot(), '.data', `${network}${suffix()}`, loadDeployment(network).contractAddress.slice(0, 16));
 
 export type DeploymentState = { network: string; contractAddress: string; deployedAtBlock?: number; params?: Record<string, number> };
 export const loadDeployment = (network: string): DeploymentState => JSON.parse(readFileSync(statePath(network), 'utf8'));
