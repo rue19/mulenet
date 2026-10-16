@@ -175,3 +175,15 @@ describe('bank-node flows', () => {
     expect(dump).not.toContain(T);
   });
 });
+
+describe('quota slots', () => {
+  it('a bank node with a fresh database skips slots already used on-chain this epoch', async () => {
+    const { A } = consortium();
+    await flagX(A, 'vpa:v1:first@okaxis');
+    await flagX(A, 'vpa:v1:second@okaxis');
+    await flagX(A, 'vpa:v1:third@okaxis');
+    // Same institution, brand-new local database (e.g. data directory recreated).
+    const fresh = { ...A, store: openStore() };
+    await expect(flagX(fresh, 'vpa:v1:fourth@okaxis')).resolves.toMatchObject({ flagIndex: 3 });
+  });
+});

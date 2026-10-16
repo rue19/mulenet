@@ -94,6 +94,16 @@ const memberPath = async (d: FlowDeps) => {
   }
 };
 
+// The next unused quota slot this epoch, read from the chain: each slot's nullifier is public,
+// and only this institution can compute its own. The local counter is just a starting hint, so a
+// lost or fresh database never collides with slots used earlier.
+const freeSlot = (d: FlowDeps, ledger: Ledger, kind: 'flag' | 'revoke', epoch: number): number => {
+  const nf = kind === 'flag' ? hash.flagQuotaNullifier : hash.revokeQuotaNullifier;
+  let slot = d.store.nextSlot(kind, epoch);
+  while (ledger.quotaNullifiers.member(nf(d.institutionSecret, BigInt(epoch), BigInt(slot)))) slot++;
+  return slot;
+};
+
 // ── outbox: relay writes are retried until the relay has the record ──
 
 export const flushOutbox = async (d: Pick<FlowDeps, 'store' | 'relay'>) => {
@@ -132,7 +142,7 @@ export const flag = async (d: FlowDeps, input: FlagInput, onState: (s: 'tagging'
 
   const instPath = await memberPath(d);
   onState('proving');
-  let slot = d.store.nextSlot('flag', epoch);
+  let slot = freeSlot(d, ledger, 'flag', epoch);
   let res;
   for (let attempt = 0; ; attempt++) {
     try {
@@ -337,7 +347,7 @@ export const revoke = async (
     throw new FlowError('identifier-mismatch', 'that identifier does not reproduce this flag');
   }
   const epoch = Number(ledger.currentEpoch);
-  const slot = d.store.nextSlot('revoke', epoch);
+  const slot = freeSlot(d, ledger, 'revoke', epoch);
 
   onState('proving');
   try {
