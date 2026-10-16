@@ -7,6 +7,15 @@ const env = { ...process.env, MULENET_NETWORK: 'undeployed', MULENET_DEPLOYMENT:
 
 export default async function globalSetup() {
   Object.assign(process.env, env);
+  // MULENET_EXTERNAL_STACK=1: everything (deployment, services, console on :3000) is already up,
+  // e.g. via docker compose. Just wait for the console.
+  if (process.env.MULENET_EXTERNAL_STACK === '1') {
+    for (let i = 0; i < 300; i++) {
+      if (await fetch('http://127.0.0.1:3000/xray').then((r) => r.ok, () => false)) return;
+      await new Promise((r) => setTimeout(r, 1_000));
+    }
+    throw new Error('console not reachable on :3000');
+  }
   const root = repoRoot();
   // Fresh demo deployment: 60 s epochs, TTL 1, k = 2, bank-e left unregistered.
   execFileSync('npx', ['tsx', 'scripts/bootstrap.ts', 'undeployed', '--epoch', '60', '--ttl', '1', '--k', '2', '--skip', 'bank-e'], {
