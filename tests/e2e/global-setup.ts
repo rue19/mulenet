@@ -10,6 +10,8 @@ export default async function globalSetup() {
   // MULENET_EXTERNAL_STACK=1: everything (deployment, services, console on :3000) is already up,
   // e.g. via docker compose. Just wait for the console.
   if (process.env.MULENET_EXTERNAL_STACK === '1') {
+    // Every service must be healthy first: bank nodes sync wallets before they listen.
+    await startStack('undeployed', { guardians: true, explorer: true });
     for (let i = 0; i < 300; i++) {
       if (await fetch('http://127.0.0.1:3000/xray').then((r) => r.ok, () => false)) return;
       await new Promise((r) => setTimeout(r, 1_000));
