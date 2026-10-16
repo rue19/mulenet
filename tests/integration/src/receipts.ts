@@ -8,6 +8,7 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { bankClient, guardianOperator, regulatorClient } from '@mulenet/sdk/clients';
 import { deploymentName, loadDeployment, repoRoot } from '@mulenet/sdk/config';
+import { networks } from '@mulenet/sdk';
 import type { Job } from '@mulenet/sdk/api-types';
 
 const NET = process.env.MULENET_NETWORK ?? 'undeployed';
@@ -18,7 +19,7 @@ const g1 = guardianOperator(NET, 1);
 const g3 = guardianOperator(NET, 3);
 void regulatorClient;
 
-type Row = { step: string; circuit: string; outcome: string; kind: 'on-chain' | 'refused before proof' | 'refused on-chain' | 'off-chain'; tx?: string; block?: number };
+type Row = { step: string; circuit: string; outcome: string; kind: 'on-chain' | 'refused before proof' | 'refused on-chain' | 'off-chain'; tx?: string; block?: number; hash?: string };
 const rows: Row[] = [];
 const add = (step: string, circuit: string, j: Job, expectFail?: string) => {
   const kind: Row['kind'] = j.state === 'confirmed' ? 'on-chain' : j.txId ? 'refused on-chain' : 'refused before proof';
@@ -55,6 +56,24 @@ rows.push({ step: '9d. guardian 3 approves', circuit: 'approve', outcome: a3.sta
 const ex = await g1.execute(p.body.proposalId);
 rows.push({ step: '9e. execute with 2 approvals', circuit: 'execute', outcome: ex.status === 200 ? 'confirmed' : String(ex.status), kind: 'on-chain', tx: ex.body.txId });
 
+// Services report transaction identifiers; explorers and the verifier use transaction hashes.
+const net = networks[NET as 'undeployed' | 'preprod']();
+for (const r of rows.filter((x) => x.tx)) {
+  const res = await fetch(net.indexer, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ query: 'query($i: HexEncoded!) { transactions(offset: { identifier: $i }) { hash block { height } } }', variables: { i: r.tx } }),
+  });
+  const t = ((await res.json()) as { data?: { transactions?: { hash: string; block: { height: number } }[] } }).data?.transactions?.[0];
+  if (t) {
+    r.hash = t.hash;
+    r.block = t.block.height;
+  } else {
+    console.log(`✗ could not resolve tx ${r.tx} on the indexer`);
+    process.exitCode = 1;
+  }
+}
+
 const md = [
   `# Receipts (${NET}${deploymentName() === 'main' ? '' : `, ${deploymentName()}`})`,
   '',
@@ -64,9 +83,14 @@ const md = [
   '',
   '| Step | Circuit | Outcome | Kind | Transaction |',
   '|---|---|---|---|---|',
-  ...rows.map((r) => `| ${r.step} | \`${r.circuit}\` | ${r.outcome} | ${r.kind} | ${r.tx ? `\`${r.tx}\`${r.block ? ` (block ${r.block})` : ''}<br>${links(r.tx)}` : '—'} |`),
+  ...rows.map(
+    (r) =>
+      `| ${r.step} | \`${r.circuit}\` | ${r.outcome} | ${r.kind} | ${r.hash ? `hash \`${r.hash}\` (block ${r.block})<br>id \`${r.tx}\`<br>${links(r.hash)}` : '—'} |`,
+  ),
   '',
 ];
 const out = resolve(repoRoot(), NET === 'preprod' ? 'docs/RECEIPTS.md' : `docs/RECEIPTS.${NET}.md`);
 writeFileSync(out, md.join('\n'));
+// Machine-readable copy for `mulenet-verify receipts`.
+writeFileSync(out.replace(/\.md$/, '.json'), JSON.stringify({ network: NET, contract: dep.contractAddress, generatedAt: new Date().toISOString(), rows }, null, 2) + '\n');
 console.log(`wrote ${out}`);

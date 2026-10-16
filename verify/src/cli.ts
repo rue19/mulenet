@@ -170,17 +170,23 @@ const main = async () => {
       return;
     }
     case 'receipts': {
-      const file = resolve(root, args[1] ?? 'docs/RECEIPTS.md');
-      const hashes = [...new Set(readFileSync(file, 'utf8').match(/\b[0-9a-f]{64}\b/g) ?? [])];
-      console.log(`${hashes.length} transaction hashes in ${file.replace(root + '/', '')}`);
-      for (const h of hashes) {
+      // Reads the JSON written next to RECEIPTS*.md by tests/integration/src/receipts.ts.
+      const file = resolve(root, (args[1] ?? 'docs/RECEIPTS.md').replace(/\.md$/, '.json'));
+      const rec = JSON.parse(readFileSync(file, 'utf8')) as { rows: { step: string; kind: string; tx?: string; hash?: string; block?: number }[] };
+      const onChain = rec.rows.filter((r) => r.hash);
+      console.log(`${onChain.length} on-chain receipts in ${file.replace(root + '/', '')}`);
+      for (const r of onChain) {
         const d = await gql<{ transactions: { hash: string; block: { height: number } }[] }>(
           'query($h: HexEncoded!) { transactions(offset: { hash: $h }) { hash block { height } } }',
-          { h },
+          { h: r.hash },
         ).catch(() => ({ transactions: [] }));
-        if (d.transactions.length) ok(`${h.slice(0, 16)}… in block ${d.transactions[0].block.height}`);
-        else bad(`${h.slice(0, 16)}… not found on ${network}`);
+        const t = d.transactions[0];
+        if (!t) bad(`${r.step}: ${r.hash!.slice(0, 16)}… not found on ${network}`);
+        else if (t.block.height !== r.block) bad(`${r.step}: in block ${t.block.height}, receipt says ${r.block}`);
+        else ok(`${r.step}: ${r.hash!.slice(0, 16)}… in block ${t.block.height}`);
       }
+      const refused = rec.rows.filter((r) => r.kind === 'refused before proof' && r.tx);
+      for (const r of refused) bad(`${r.step}: marked refused before proof but has a transaction`);
       return;
     }
     default:
