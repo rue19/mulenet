@@ -70,7 +70,7 @@ Raw output: [`benchmarks/2026-10-16-local-depth20.json`](benchmarks/2026-10-16-l
 
 **Timing method.** Every circuit was measured on its first call, so the figures include the proof server loading that circuit's key ("first call"). Only `submitFlag` was also called again with its key loaded ("warm").
 
-| Circuit | Prove, first call | Prove, warm | Serialized tx (bytes, sponsored-equivalent self-paid) |
+| Circuit | Prove, first call | Prove, warm | Serialized tx (bytes; self-paid by the genesis wallet. Sponsored `submitFlag` measured 8,908–8,941 in the S6.1 runs, ADR 0016) |
 |---|---|---|---|
 | `submitFlag` | 11.1 s | 5.6 s / 5.7 s | 8,906 / 8,940 / 8,908 |
 | `attestCorroboration3` | 8.8 s | not measured (one call) | 8,875 |
