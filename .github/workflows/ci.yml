@@ -29,12 +29,13 @@ jobs:
 
       # npm 12 runs only the install scripts allow-listed in package.json#allowScripts (R11).
       - run: npm install -g npm@12
-      - run: npm ci
+      - run: npm ci --strict-allow-scripts
 
-      - name: Version pins and runtime dedupe (R7)
+      - name: Version pins, runtime dedupe (R7), service lint
         run: |
           npm run check-versions
           npm run check-dedupe
+          node scripts/lint-services.mjs
 
       - name: Compile contract
         run: npm run compact
