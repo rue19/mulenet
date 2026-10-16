@@ -182,7 +182,7 @@ Tasks run in this order. ✅ = done, ▶ = in progress. Ownership tags follow th
 13. ✅ 4.3: bank node, with boot sequence, durable job queue, flag and check flows, and the outbox, 20 tests against the contract simulator.
 14. ✅ 4.5: `scripts/bootstrap.ts`, with `--skip` and named deployments.
 15. ✅ 4.6: integration test `flag-check`, green twice in a row on fresh processes.
-16. ◐ 4.7: the services image builds (1.25 GB, 346 s). The compose stack hasn't been started from it yet. `npm run dev:up` (process runner) works.
+16. ✅ 4.7: images build (`--target services` 1.25 GB, `--target console` 398 MB). Phase 4 and 5 integration and the Playwright judge test pass against the compose stack (docs/evidence/P0.md).
 17. **P6-0 Preprod walking skeleton, as soon as DUST exists.** Blocked on [YOU] faucet and token.
 
 ### D. Phase 5: attest, revoke, warrants

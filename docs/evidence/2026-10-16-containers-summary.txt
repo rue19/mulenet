@@ -1,0 +1,10 @@
+07:48:29 P0-4: phase 4 flag-check against containers (deployment main, keeper off)
+07:49:48 flag-check exit 0: Tests  5 passed (5)
+07:49:50 P0-5 round 1: fresh demo deployment
+07:56:38 bootstrap exit 0
+08:02:05 phase 5 demo test exit 0: Tests  11 passed (11)
+08:07:22 playwright judge exit 0:   1 passed (5.3m) 
+08:07:24 P0-5 round 2: fresh demo deployment
+08:13:50 bootstrap exit 0
+08:19:16 playwright judge exit 0:   1 passed (5.4m) 
+08:19:19 finished: ALL GREEN

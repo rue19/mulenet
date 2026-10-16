@@ -1,0 +1,12 @@
+base seed 202300626, 10 chunks x 100 runs, started 2026-10-15T07:17:40Z
+chunk 1 seed 202300627 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 46 attestations accepted, 332 rejected | 121.09s 758784KB
+chunk 2 seed 202300628 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 50 attestations accepted, 353 rejected | 127.56s 778900KB
+chunk 3 seed 202300629 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 43 attestations accepted, 281 rejected | 113.81s 744676KB
+chunk 4 seed 202300630 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 45 attestations accepted, 330 rejected | 122.00s 756136KB
+chunk 5 seed 202300631 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 43 attestations accepted, 273 rejected | 111.59s 739388KB
+chunk 6 seed 202300632 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 46 attestations accepted, 307 rejected | 109.37s 763508KB
+chunk 7 seed 202300633 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 62 attestations accepted, 333 rejected | 112.28s 788996KB
+chunk 8 seed 202300634 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 53 attestations accepted, 368 rejected | 115.87s 803256KB
+chunk 9 seed 202300635 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 42 attestations accepted, 313 rejected | 108.00s 755128KB
+chunk 10 seed 202300636 exit 0 | Tests  1 passed (1) | reference model: 100 runs, 45 attestations accepted, 346 rejected | 111.13s 769256KB
+finished 2026-10-15T07:36:52Z: ALL CHUNKS PASSED
