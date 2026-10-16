@@ -1,0 +1,71 @@
+{
+  "label": "depth20-run2",
+  "address": "38b42754fe0aa0b2451a34ad4cbbfb4256c0533a6807742df8f288eeaac6c706",
+  "concurrencyOk": true,
+  "leaks": [],
+  "results": [
+    {
+      "circuit": "propose",
+      "proveMs": 2642.240324999999,
+      "totalMs": 23619.133416,
+      "blockHeight": 13,
+      "txBytes": 8555
+    },
+    {
+      "circuit": "approve",
+      "proveMs": 2568.296429000002,
+      "totalMs": 22676.980943999995,
+      "blockHeight": 17,
+      "txBytes": 8741
+    },
+    {
+      "circuit": "execute",
+      "proveMs": 2453.3720369999937,
+      "totalMs": 24023.739136999997,
+      "blockHeight": 24,
+      "txBytes": 8829
+    },
+    {
+      "circuit": "submitFlag",
+      "proveMs": 11103.08156000002,
+      "totalMs": 29379.137470999965,
+      "blockHeight": 77,
+      "txBytes": 8906
+    },
+    {
+      "circuit": "submitFlag (stale-state B)",
+      "proveMs": 5570.145475000027,
+      "totalMs": 23541.383527000027,
+      "blockHeight": 81,
+      "txBytes": 8940
+    },
+    {
+      "circuit": "submitFlag (stale-state C)",
+      "proveMs": 5672.543275000004,
+      "totalMs": 24018.969650999992,
+      "blockHeight": 85,
+      "txBytes": 8908
+    },
+    {
+      "circuit": "attestCorroboration3",
+      "proveMs": 8824.884434000007,
+      "totalMs": 30594.603792999987,
+      "blockHeight": 90,
+      "txBytes": 8875
+    },
+    {
+      "circuit": "attestCorroboration2",
+      "proveMs": 8180.312867000001,
+      "totalMs": 29342.105965999886,
+      "blockHeight": 103,
+      "txBytes": 8845
+    },
+    {
+      "circuit": "revokeFlag",
+      "proveMs": 4359.725454999949,
+      "totalMs": 24015.532385000028,
+      "blockHeight": 107,
+      "txBytes": 9013
+    }
+  ]
+}

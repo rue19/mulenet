@@ -58,3 +58,29 @@ Each circuit was measured once (`submitFlag` three times), so treat these as ind
 | 75 KB | `advanceEpoch` |
 
 The proving-key sizes are consistent with roughly k = 16 for the largest circuits, below the k ≥ 17 point where builders report hangs.
+
+## Rerun with transaction sizes (16 Oct 2026)
+
+Raw output: [`benchmarks/2026-10-16-local-depth20.json`](benchmarks/2026-10-16-local-depth20.json) (log: `test-artifacts/spike-local-2.log`).
+
+**Setup.**
+- Machine and stack: same as the 14 Oct run (Intel Core Ultra 9 185H, 30 GB RAM; local node 1.0.0, proof server 8.1.0 on :6301).
+- Chain: a fresh local devnet after a reset.
+- Command: `MN_PROOF_SERVER=http://127.0.0.1:6301 npx tsx scripts/spike-local.ts depth20-run2` → exit 0.
+
+**Timing method.** Every circuit was measured on its first call, so the figures include the proof server loading that circuit's key ("first call"). Only `submitFlag` was also called again with its key loaded ("warm").
+
+| Circuit | Prove, first call | Prove, warm | Serialized tx (bytes, sponsored-equivalent self-paid) |
+|---|---|---|---|
+| `submitFlag` | 11.1 s | 5.6 s / 5.7 s | 8,906 / 8,940 / 8,908 |
+| `attestCorroboration3` | 8.8 s | not measured (one call) | 8,875 |
+| `attestCorroboration2` | 8.2 s | not measured (one call) | 8,845 |
+| `revokeFlag` | 4.4 s | not measured (one call) | 9,013 |
+| `propose` | 2.6 s | not measured (one call) | 8,555 |
+| `approve` | 2.6 s | not measured (one call) | 8,741 |
+| `execute` | 2.5 s | not measured (one call) | 8,829 |
+| `advanceEpoch` | not measured | not measured | not measured. The spike does not roll epochs; on the network the epoch keeper calls it. |
+
+**Throttle arithmetic (§1, 10 MB of tx data per account per day).** At about 9 KB per transaction, one sponsor wallet can submit about 1,100 MuleNet transactions a day. The pool of 3 gives about 3,300.
+
+**Check latency (off-chain, no transaction).** Measured once against the containerised stack on 15 Oct: OPRF 286 ms, relay 50 ms, on-chain verification 68 ms. That was a first call; warm OPRF is under 150 ms (`services/oracle` test).
