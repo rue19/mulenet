@@ -98,6 +98,8 @@ MULENET_DEMO_HOOKS=1 npm run dev:up              # oracles, relay, sponsor, bank
 (cd apps/console && npm run build && npm start)   # http://localhost:3000
 ```
 
+**After a host reboot, reset the local network.** The local node (1.0.0) does not resume cleanly from its persisted chain data: block production stalls, and transactions fail with `host code panicked … root should be in the arena`. Reset it with `docker compose -f infra/local/standalone.yml -p mulenet-local down -v`, bring it back up, and re-run the bootstrap. This affects only the local devnet.
+
 Tests: `npm test -w contracts`, `npm test -w packages/crypto`, `npm run test:integration`, `npm run leak-scan`.
 
 ## Technical gate

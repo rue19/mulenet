@@ -33,14 +33,15 @@ const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const rand = () => new Uint8Array(randomBytes(32));
 
 const timings: ProofTiming[] = [];
-const results: { circuit: string; proveMs: number; totalMs: number; blockHeight?: number }[] = [];
+const results: { circuit: string; proveMs: number; totalMs: number; blockHeight?: number; txBytes?: number }[] = [];
 
-const timed = async <T extends { public: { blockHeight: number } }>(circuit: string, fn: () => Promise<T>): Promise<T> => {
+const timed = async <T extends { public: { blockHeight: number; tx?: { serialize(): Uint8Array } } }>(circuit: string, fn: () => Promise<T>): Promise<T> => {
   const before = timings.length;
   const t = performance.now();
   const out = await fn();
   const proveMs = timings.slice(before).reduce((s, x) => s + x.ms, 0);
-  results.push({ circuit, proveMs, totalMs: performance.now() - t, blockHeight: out.public.blockHeight });
+  const txBytes = out.public.tx?.serialize().length;
+  results.push({ circuit, proveMs, totalMs: performance.now() - t, blockHeight: out.public.blockHeight, txBytes });
   log(`${circuit}: prove ${(proveMs / 1000).toFixed(1)} s, total ${((performance.now() - t) / 1000).toFixed(1)} s, block ${out.public.blockHeight}`);
   return out;
 };
