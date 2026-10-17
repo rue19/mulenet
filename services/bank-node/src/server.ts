@@ -40,7 +40,7 @@ export const buildBankNode = (o: BankNodeOptions) => {
     running = true;
     try {
       for (let job = store.nextQueued(); job; job = store.nextQueued()) {
-        const req = JSON.parse(job.request);
+        const req = store.jobRequest(job);
         try {
           const onState = (s: 'tagging' | 'proving' | 'sponsoring') => store.setState(job!.id, s);
           const out =

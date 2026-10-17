@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // BANK_ID=bank-a MULENET_NETWORK=undeployed tsx src/main.ts
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fromHex } from '@mulenet/crypto';
 import { balances, networks, waitForSync } from '@mulenet/sdk';
@@ -37,7 +38,8 @@ const { app } = buildBankNode({
     institutionId: bankId,
     institutionSecret: fromHex(secret.institutionSecret),
     guardianGroupKey: fromHex(cfg.guardians.groupPublicKey),
-    store: openStore(`${dataDir}/bank.db`),
+    // Job-queue key: derived from the institution secret, so queued identifiers are ciphertext at rest.
+    store: openStore(`${dataDir}/bank.db`, new Uint8Array(createHash('sha256').update('mulenet:bank-job-key:v1').update(fromHex(secret.institutionSecret)).digest())),
     oprf: createOprfClient({ oracles: cfg.oracles, signingKey }),
     relay: createRelayClient({ urls: [cfg.relay.url], signingKey }),
     chain,

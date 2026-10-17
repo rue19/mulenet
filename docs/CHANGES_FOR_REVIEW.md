@@ -15,3 +15,8 @@ Security-critical code that Raaj must be able to defend (instruction set §1, ru
 ## Change log
 
 - **15 Oct 2026, records:** `packages/crypto/src/records.ts`. Relay records now carry the guardian-encrypted case details (`ct`) inside the tag-encrypted body, and `openRecord` rejects a record whose `SHA-256(ct)` differs from its `ctHash`. **Why:** the warrant flow (§7.6) needed the regulator to fetch the ciphertexts, and no store for them existed. Guardians rely on this check (policy item 4).
+- **17 Oct 2026, bank-node storage at rest:** `services/bank-node/src/store.ts` (`openStore`, `seal`, `unseal`, `jobRequest`) and `services/bank-node/src/main.ts` (job key). **Found by the nightly leak scan:** raw account identifiers survived in `bank.db-wal` after jobs finished. Deleting the field doesn't erase SQLite's old WAL frames or free pages. **Fix:**
+  - the identifier in a queued job is stored only as XChaCha20-Poly1305 ciphertext, under a key `SHA-256("mulenet:bank-job-key:v1" ‖ instSecret)`;
+  - `secure_delete` zeroes freed pages.
+  
+  Test: `services/bank-node/src/test/store-at-rest.test.ts` reads the raw DB and WAL bytes, and fails on the old code.

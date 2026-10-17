@@ -2,7 +2,8 @@
 // Bank-node durable state (decision X7). Proving takes seconds and can fail mid-flight, so jobs,
 // own flags, quota-slot usage and pending relay writes all survive restarts.
 // Nothing here holds a raw identifier or a subject tag T.
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { openDb } from '@mulenet/service-kit';
 
 const SCHEMA = `
@@ -34,9 +35,29 @@ export type JobRow = {
   error: string | null;
 };
 
-export const openStore = (path = ':memory:') => {
+// Raw account identifiers never touch the disk in plaintext. SQLite keeps old page images in
+// its WAL (and in free pages), so deleting a field after use is not enough: the identifier in a
+// queued job is stored encrypted under `jobKey` (derived from the institution secret in main.ts),
+// and secure_delete zeroes freed pages. Found by the nightly leak scan (identifier in bank.db-wal).
+export const openStore = (path = ':memory:', jobKey: Uint8Array = new Uint8Array(randomBytes(32))) => {
   const db = openDb(path, SCHEMA);
+  db.exec('pragma secure_delete = on;');
   const now = () => Date.now();
+  const AAD = new TextEncoder().encode('mulenet:job-identifier:v1');
+  const seal = (req: Record<string, unknown>) => {
+    if (typeof req.identifier !== 'string') return req;
+    const nonce = new Uint8Array(randomBytes(24));
+    const ct = xchacha20poly1305(jobKey, nonce, AAD).encrypt(new TextEncoder().encode(req.identifier));
+    const { identifier: _plain, ...rest } = req;
+    return { ...rest, identifierCt: Buffer.concat([nonce, ct]).toString('hex') };
+  };
+  const unseal = (req: Record<string, unknown>) => {
+    if (typeof req.identifierCt !== 'string') return req;
+    const b = Buffer.from(req.identifierCt, 'hex');
+    const identifier = new TextDecoder().decode(xchacha20poly1305(jobKey, b.subarray(0, 24), AAD).decrypt(b.subarray(24)));
+    const { identifierCt: _ct, ...rest } = req;
+    return { ...rest, identifier };
+  };
 
   return {
     db,
@@ -50,13 +71,16 @@ export const openStore = (path = ':memory:') => {
         kind,
         idem,
         'queued',
-        JSON.stringify(request),
+        JSON.stringify(seal(request as Record<string, unknown>)),
         now(),
         now(),
       );
       return { id, created: true };
     },
     job: (id: string) => db.prepare('select * from jobs where id = ?').get(id) as JobRow | undefined,
+    // The job's request with the identifier decrypted, for the worker only (never persisted).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shape depends on job kind, validated at enqueue
+    jobRequest: (row: JobRow): any => unseal(JSON.parse(row.request)),
     nextQueued: () => db.prepare("select * from jobs where state = 'queued' order by created limit 1").get() as JobRow | undefined,
     // Jobs left mid-flight by a crash go back to the queue at boot.
     requeueInterrupted: () =>
@@ -68,6 +92,7 @@ export const openStore = (path = ':memory:') => {
       // Drop the identifier from the stored request once the job is done (§4.3 step 11).
       const req = JSON.parse((db.prepare('select request from jobs where id = ?').get(id) as { request: string }).request);
       delete req.identifier;
+      delete req.identifierCt;
       db.prepare('update jobs set state = ?, result = ?, error = ?, request = ?, updated = ? where id = ?').run(
         state,
         result === undefined ? null : JSON.stringify(result),
