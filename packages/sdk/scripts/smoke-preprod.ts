@@ -8,6 +8,15 @@ import { balances, buildWallet, ensureDust, networks, redact, waitForSync } from
 import { repoRoot } from '../src/config.js';
 
 const log = (...a: unknown[]) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
+// A failure must never vanish: report anything uncaught, with its exit code.
+process.on('unhandledRejection', (e) => {
+  log(`unhandled rejection: ${e instanceof Error ? e.stack : String(e)}`);
+  process.exit(1);
+});
+process.on('uncaughtException', (e) => {
+  log(`uncaught exception: ${e.stack}`);
+  process.exit(1);
+});
 const net = networks.preprod();
 if (!process.env.BLOCKFROST_PROJECT_ID?.startsWith('nightpreprod')) console.warn('warning: BLOCKFROST_PROJECT_ID should start with "nightpreprod"');
 
@@ -31,7 +40,19 @@ const seeds = readFileSync(resolve(repoRoot(), 'infra/.env.sponsors.preprod'), '
 for (const [i, seed] of seeds.entries()) {
   const w = await buildWallet(net, seed);
   log(`sponsor ${i}: ${w.unshieldedKeystore.getBech32Address().asString()} syncing…`);
+  // Progress every 30 s, so a long first sync is visibly alive.
+  const progress = w.wallet.state().subscribe({
+    next: (st) => {
+      const now = Date.now();
+      if (now - lastLog < 30_000) return;
+      lastLog = now;
+      log(`sponsor ${i}: synced=${st.isSynced} NIGHT=${balances(st).night} DUST=${balances(st).dust}`);
+    },
+    error: (e) => log(`sponsor ${i}: wallet state error: ${e instanceof Error ? e.message : String(e)}`),
+  });
+  let lastLog = 0;
   const s = await waitForSync(w, 3 * 3_600_000);
+  progress.unsubscribe();
   const b = balances(s);
   const unregistered = s.unshielded?.availableCoins.filter((c) => !c.meta.registeredForDustGeneration).length ?? 0;
   log(`sponsor ${i}: NIGHT ${b.night}, DUST ${b.dust} (${b.dustCoins} spendable coins), ${unregistered} unregistered NIGHT UTXOs`);
