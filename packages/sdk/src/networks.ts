@@ -30,6 +30,7 @@ export const networks: Record<NetworkName, () => NetworkConfig> = {
   }),
   preprod: () => {
     const id = must(process.env.BLOCKFROST_PROJECT_ID, 'BLOCKFROST_PROJECT_ID');
+    installTokenRedaction(id);
     const q = (u: string) => `${u}?project_id=${encodeURIComponent(id)}`;
     return {
       networkId: 'preprod',
@@ -43,3 +44,22 @@ export const networks: Record<NetworkName, () => NetworkConfig> = {
 
 // Strips query strings (the Blockfrost token) before a URL goes anywhere near a log.
 export const redact = (url: string): string => url.replace(/\?.*$/, '?…');
+
+// Third-party libraries (e.g. the Polkadot RPC client inside the wallet SDK) print connection URLs,
+// query string included, to stdout/stderr. Once a Blockfrost token is in use, mask it in everything
+// this process writes, so it can never reach a log file or container log (instruction set rule 4).
+let redacting = false;
+export const installTokenRedaction = (token: string): void => {
+  if (redacting || !token) return;
+  redacting = true;
+  const mask = (chunk: unknown): unknown =>
+    typeof chunk === 'string'
+      ? chunk.split(token).join('REDACTED').replace(/project_id=[^&"\s]+/g, 'project_id=REDACTED')
+      : Buffer.isBuffer(chunk)
+        ? Buffer.from(mask(chunk.toString('utf8')) as string)
+        : chunk;
+  for (const stream of [process.stdout, process.stderr]) {
+    const write = stream.write.bind(stream) as (...a: unknown[]) => boolean;
+    stream.write = ((chunk: unknown, ...rest: unknown[]) => write(mask(chunk), ...rest)) as typeof stream.write;
+  }
+};
