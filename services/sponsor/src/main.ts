@@ -12,6 +12,7 @@ import {
   makeProviders,
   prepareSponsoredCall,
   readLedger,
+  saveWalletState,
   walletAndMidnightProvider,
   buildWallet,
   deserializeFinalized,
@@ -20,7 +21,7 @@ import {
   waitForSync,
   type WalletContext,
 } from '@mulenet/sdk';
-import { dataDir, loadDeployment, loadPublicConfig, repoRoot } from '@mulenet/sdk/config';
+import { dataDir, loadDeployment, loadPublicConfig, repoRoot, walletStatePath } from '@mulenet/sdk/config';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import type { FinalizedTransaction } from '@midnight-ntwrk/midnight-js-protocol/ledger';
 import { createAccounting } from './accounting.js';
@@ -43,11 +44,16 @@ const seeds =
         .map((l) => l.split('=')[1].trim());
 
 const wallets: { id: string; wallet: WalletContext }[] = [];
+const snapshots: (() => Promise<void>)[] = [];
 for (const [i, seed] of seeds.entries()) {
-  const wallet = await buildWallet(net, seed);
+  const statePath = walletStatePath(network, seed);
+  const wallet = await buildWallet(net, seed, { statePath });
   await ensureDust(wallet);
   wallets.push({ id: `sponsor-${i}`, wallet });
+  if (statePath) snapshots.push(() => saveWalletState(wallet, net, statePath));
 }
+// Keep restarts fast off the local network: snapshot every sponsor wallet every 5 minutes.
+const snapshotTimer = setInterval(() => void Promise.all(snapshots.map((f) => f().catch(() => {}))), 300_000);
 
 // Sponsor-side TTL for the DUST offer; the binding deadline is the user's intent TTL (R3).
 const feeTtl = () => new Date(Date.now() + 20 * 60_000);
@@ -102,6 +108,8 @@ const keeperMode = process.env.SPONSOR_KEEPER ?? '1';
 const stopKeeper = keeperMode === '1' ? startKeeper(keeperDeps) : () => {};
 
 app.addHook('onClose', async () => {
+  clearInterval(snapshotTimer);
+  await Promise.all(snapshots.map((f) => f().catch(() => {})));
   stopKeeper();
   for (const w of wallets) await w.wallet.wallet.stop();
 });
