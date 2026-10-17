@@ -47,7 +47,11 @@ for (const [i, seed] of seeds.entries()) {
       const now = Date.now();
       if (now - lastLog < 30_000) return;
       lastLog = now;
-      log(`sponsor ${i}: synced=${st.isSynced} NIGHT=${balances(st).night} DUST=${balances(st).dust}`);
+      const at = (p?: { appliedIndex: bigint; highestIndex: bigint }) => (p ? `${p.appliedIndex}/${p.highestIndex}` : '-');
+      log(
+        `sponsor ${i}: synced=${st.isSynced} NIGHT=${balances(st).night} DUST=${balances(st).dust} ` +
+          `shielded ${at(st.shielded?.progress)} unshielded ${at(st.unshielded?.progress)} dust ${at(st.dust?.progress)}`,
+      );
       // Snapshot every 2 minutes, so an interrupted first sync resumes instead of restarting.
       if (now - lastSave > 120_000) {
         lastSave = now;
