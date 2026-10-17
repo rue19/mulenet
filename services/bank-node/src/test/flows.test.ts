@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { createHash, randomBytes } from 'node:crypto';
 import { dealGuardianKeys, hash, openBucket, openRecord, recordId, recordKeys, sealRecord, toHex, type FlagRecord } from '@mulenet/crypto';
 import { describe, expect, it } from 'vitest';

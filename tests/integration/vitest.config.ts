@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { defineConfig } from 'vitest/config';
 
 // Integration tests run against the live local network, one file at a time (shared chain and sponsor).

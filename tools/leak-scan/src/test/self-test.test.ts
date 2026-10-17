@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // P0-3: the scanner must find every planted secret, of every shape, in every encoding, in every
 // kind of output the system writes (logs, SQLite databases, JS bundles), and the CLI must exit
 // non-zero on a hit. A scanner that always reports 0 fails this suite.

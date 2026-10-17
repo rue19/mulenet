@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Found by the nightly leak scan: raw identifiers survived in bank.db-wal after a job finished.
 // These tests read the database files as raw bytes, the way the leak scanner does.
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';

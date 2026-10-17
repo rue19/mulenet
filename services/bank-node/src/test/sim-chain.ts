@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // A Chain backed by the compiled contract running in the compact-runtime simulator, so the
 // bank-node flows are tested against real contract semantics without a network.
 import { randomBytes } from 'node:crypto';

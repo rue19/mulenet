@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: stale-member abuse. An evicted institution keeps flagging, revoking or attesting.
 import { describe, expect, it } from 'vitest';
 import { KIND, World, bytes, subject } from '../world.js';

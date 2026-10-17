@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: using expired flags; boundary arithmetic of the freshness window.
 import { describe, expect, it } from 'vitest';
 import { pureCircuits as pc } from '../../managed/mulenet/contract/index.js';

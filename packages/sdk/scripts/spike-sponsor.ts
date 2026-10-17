@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Sponsorship spike on the local network (plan §4.4 and an early look at S6.1):
 //   1. a fresh bank wallet with zero DUST prepares submitFlag; the genesis wallet sponsors it
 //   2. bank DUST stays exactly 0

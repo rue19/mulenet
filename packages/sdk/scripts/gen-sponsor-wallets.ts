@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Generates the sponsor wallet pool (§8.4). Seeds go to a gitignored, owner-only env file;
 // only public addresses are printed, for the faucet.
 import { randomBytes } from 'node:crypto';

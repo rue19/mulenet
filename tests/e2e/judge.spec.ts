@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
 
 test('judge mode runs all 11 steps with the expected outcome each time', async ({ page }) => {

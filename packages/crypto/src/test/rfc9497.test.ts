@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // RFC 9497 Appendix A.1 test vectors, ristretto255-SHA512 (OPRF and VOPRF modes).
 import { ristretto255_oprf } from '@noble/curves/ed25519.js';
 import { describe, expect, it } from 'vitest';

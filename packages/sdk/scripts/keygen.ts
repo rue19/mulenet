@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Generates all consortium keys for one network (trusted dealer, ADR 0014):
 //   infra/config/<network>.json             public config (commit this)
 //   infra/secrets/<network>/<party>.json     one secret file per party, mode 0600 (gitignored)

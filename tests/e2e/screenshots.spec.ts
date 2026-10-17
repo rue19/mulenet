@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // P3: capture the submission screenshots at 1600 px wide into docs/media/.
 // Run on demand against a stack that has been through judge mode at least once:
 //   SCREENSHOTS=1 MULENET_EXTERNAL_STACK=1 npx playwright test screenshots.spec.ts

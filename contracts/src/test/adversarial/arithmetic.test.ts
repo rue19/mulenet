@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: integer edge cases (Compact aborts on underflow; casts are range-checked).
 import { describe, expect, it } from 'vitest';
 import { World, bytes, subject } from '../world.js';

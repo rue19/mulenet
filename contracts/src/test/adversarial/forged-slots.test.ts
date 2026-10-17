@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: attestation slots with forged fields, or flags borrowed from other subjects/typologies.
 import { describe, expect, it } from 'vitest';
 import { World, bytes, subject } from '../world.js';

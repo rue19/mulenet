@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { ristretto255 } from '@noble/curves/ed25519.js';
 import { describe, expect, it } from 'vitest';
 import { equal, toHex, utf8 } from '../bytes.js';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: forged membership. Replaying another member's Merkle path from a public transaction.
 import { describe, expect, it } from 'vitest';
 import { pureCircuits as pc } from '../../managed/mulenet/contract/index.js';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Day-1 spike on the local `undeployed` network (§13.3):
 //   1. deploy, register four institutions through 2-of-3 governance
 //   2. prove two submitFlag calls against the SAME ledger state, then submit both —

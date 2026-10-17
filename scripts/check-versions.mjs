@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Fails if the active Compact toolchain or any resolved compact-runtime drifts from versions.json (§12.1).
 import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';

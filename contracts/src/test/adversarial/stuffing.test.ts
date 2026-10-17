@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: count stuffing. One bank tries to contribute more than 1 to a subject's count.
 import { describe, expect, it } from 'vitest';
 import { World, subject } from '../world.js';

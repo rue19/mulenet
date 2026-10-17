@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { execFileSync, spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { repoRoot } from '@mulenet/sdk/config';

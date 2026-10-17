@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threats: double vote, proposal replay, parameter tampering.
 import { describe, expect, it } from 'vitest';
 import { pureCircuits as pc } from '../../managed/mulenet/contract/index.js';

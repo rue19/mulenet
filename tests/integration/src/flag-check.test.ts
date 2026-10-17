@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Phase 4 integration test (§4.6), against the live local network with every service running
 // as its own process and every transaction sponsored.
 import { randomBytes } from 'node:crypto';

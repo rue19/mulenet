@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: a malicious prover controls its own witnesses (Midnight security guide).
 // Every witness value must be constrained by an assert; lying in a witness gains nothing.
 import { describe, expect, it } from 'vitest';

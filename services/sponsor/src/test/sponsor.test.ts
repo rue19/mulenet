@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { generateSigningKey, signRequest } from '@mulenet/service-kit';
 import { describe, expect, it } from 'vitest';
 import { createAccounting } from '../accounting.js';

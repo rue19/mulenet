@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { dealOracleKeys, evaluateWithKey, oprfInput, reconstruct, scalarFromBytes, scalarToBytes, subjectTag, toHex } from '@mulenet/crypto';
 import { createOprfClient } from '@mulenet/sdk/oprf-client';
 import { generateSigningKey, signRequest } from '@mulenet/service-kit';

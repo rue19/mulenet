@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Preprod readiness (plan P6-0): endpoints answer, and each sponsor wallet is funded and
 // registered for DUST. With --register, unregistered NIGHT is registered for DUST generation.
 // Requires BLOCKFROST_PROJECT_ID (a Midnight Preprod project, "nightpreprod…") in the environment.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it } from 'vitest';
 import { ORDER, dealShares, invert, lagrangeAtZero, mod, randomScalar, reconstruct, scalarFromBytes, scalarToBytes } from '../shamir.js';
 

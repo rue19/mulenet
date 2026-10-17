@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Phase 5 integration test: the 3-minute demo script as code (§5.5), on a fresh short-epoch
 // `demo` deployment (60 s epochs, TTL 1) with every service running as its own process.
 import { execFileSync } from 'node:child_process';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, expect, it } from 'vitest';
 import { IdentifierError, isCanonical, normalise, oprfInput, type Identifier } from '../normalise.js';
 

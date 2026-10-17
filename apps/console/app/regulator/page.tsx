@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RegulatorPanel } from '@/components/RegulatorPanel';
 import { explorer } from '@/lib/server';
 

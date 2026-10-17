@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { defineConfig } from '@playwright/test';
 
 // Judge mode end to end (§7.2 exit criterion as a regression test): a fresh short-epoch demo

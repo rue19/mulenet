@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: self-corroboration. A querier counts its own flag.
 import { describe, expect, it } from 'vitest';
 import { World, subject } from '../world.js';

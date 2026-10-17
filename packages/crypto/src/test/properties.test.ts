@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { sha256 } from '@noble/hashes/sha2.js';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';

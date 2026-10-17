@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // R7: exactly one copy of each Midnight runtime package, or StateValue/ChargedState
 // instanceof checks fail at runtime ("expected instance of …").
 import { execSync } from 'node:child_process';

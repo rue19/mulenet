@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { consortium, explorer } from '@/lib/server';
 
 export const dynamic = 'force-dynamic';

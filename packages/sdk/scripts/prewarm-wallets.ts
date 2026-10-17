@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Syncs every bank and guardian wallet once and snapshots it, one at a time (gentle on the
 // Blockfrost rate limit), so services start without a sync from genesis.
 // Usage: npx tsx scripts/prewarm-wallets.ts preprod

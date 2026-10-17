@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Fixed counterexamples found by the reference-model property test (seed policy, docs/TESTING.md).
 // Each JSON file under regressions/ is an op sequence that once diverged; all must now pass.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';

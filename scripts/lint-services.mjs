@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Hardening §4.2: services log through pino (with redaction), never console.*.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // attestCorroboration2 parity with attestCorroboration3 (closeout task 3.4): every rule the
 // k=3 circuit enforces is checked again here under a k=2 policy.
 import { describe, expect, it } from 'vitest';

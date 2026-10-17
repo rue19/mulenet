@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { encodeRecord, openBucket, recordKeys, sealRecord, toHex, type FlagRecordBody } from '@mulenet/crypto';
 import { createRelayClient } from '@mulenet/sdk/relay-client';
 import { generateSigningKey, signRequest } from '@mulenet/service-kit';

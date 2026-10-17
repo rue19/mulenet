@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Deploys MuleNet and registers every consortium institution through 2-of-3 governance (§4.5).
 // Setup is self-paid by the deployer wallet (genesis locally). Writes infra/state/<network>.json
 // (address and deploy facts; no secrets).

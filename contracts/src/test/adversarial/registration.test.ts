@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: Sybil institutions. An attacker tries to get unapproved leaves into the registry.
 import { describe, expect, it } from 'vitest';
 import { pureCircuits as pc } from '../../managed/mulenet/contract/index.js';

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 // Threat: revoked-flag reuse, and revocation abuse.
 import { describe, expect, it } from 'vitest';
 import { World, bytes, subject } from '../world.js';
