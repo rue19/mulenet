@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { expect, test } from '@playwright/test';
 
+// 1600 px wide, so the completed view doubles as the submission screenshot (scripts/screenshots.sh).
+test.use({ viewport: { width: 1600, height: 1000 } });
+
 test('judge mode runs all 11 steps with the expected outcome each time', async ({ page }) => {
   await page.goto('/judge');
   await page.getByRole('button', { name: 'Reset with a fresh account' }).click();
