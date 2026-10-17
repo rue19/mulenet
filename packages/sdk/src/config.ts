@@ -88,3 +88,10 @@ export const walletStatePath = (network: string, seedHex: string): string | unde
   network === 'undeployed'
     ? undefined
     : resolve(repoRoot(), 'infra/secrets', network, 'wallet-state', `${createHash('sha256').update(seedHex).digest('hex').slice(0, 16)}.json`);
+
+// A guardian's zero-DUST wallet seed and store password, derived from its guardian secret
+// (shared by services/guardian and the wallet pre-warm script).
+export const guardianDerived = (guardianSecretHex: string) => {
+  const d = (label: string) => createHash('sha256').update(`mulenet:guardian:${label}:v1`).update(Buffer.from(guardianSecretHex, 'hex')).digest('hex');
+  return { walletSeed: d('wallet'), storagePassword: `Mg-${d('store').slice(0, 24)}-X!` };
+};

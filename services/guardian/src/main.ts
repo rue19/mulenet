@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // GUARDIAN_INDEX=1 MULENET_NETWORK=undeployed tsx src/main.ts
-import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { MuleNet } from '@mulenet/contract';
 import { fromHex, toHex } from '@mulenet/crypto';
 import { createSponsoredChain, networks } from '@mulenet/sdk';
-import { GuardianSecret, dataDir, loadDeployment, loadPublicConfig, loadSecret } from '@mulenet/sdk/config';
+import { GuardianSecret, dataDir, guardianDerived, loadDeployment, loadPublicConfig, loadSecret } from '@mulenet/sdk/config';
 import { buildGuardian } from './server.js';
 
 const pc = MuleNet.pureCircuits;
@@ -18,7 +17,7 @@ const secret = loadSecret(GuardianSecret, network, `guardian-${index}`);
 const contractAddress = loadDeployment(network).contractAddress;
 
 // The guardian's (zero-DUST) wallet seed and store password are derived from its secret.
-const derive = (label: string) => createHash('sha256').update(`mulenet:guardian:${label}:v1`).update(fromHex(secret.guardianSecret)).digest('hex');
+const derived = guardianDerived(secret.guardianSecret);
 const guardianSecret = fromHex(secret.guardianSecret);
 const signingKey = { id: `guardian-${index}`, secretKey: fromHex(secret.signingSecretKey) };
 const chain = await createSponsoredChain({
@@ -26,8 +25,8 @@ const chain = await createSponsoredChain({
   contractAddress,
   privateStateId: `mulenet-guardian-${index}`,
   privateState: { guardianSecret },
-  walletSeed: derive('wallet'),
-  storagePassword: `Mg-${derive('store').slice(0, 24)}-X!`,
+  walletSeed: derived.walletSeed,
+  storagePassword: derived.storagePassword,
   dataDir: resolve(dataDir(network), `guardian-${index}`),
   sponsorUrl: cfg.sponsor.url,
   signingKey,
