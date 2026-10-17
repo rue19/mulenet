@@ -18,6 +18,8 @@ import {
   type FacadeState,
   type UnshieldedKeystore,
 } from '@midnight-ntwrk/wallet-sdk';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import type { NetworkConfig } from './networks.js';
@@ -35,7 +37,13 @@ export type WalletContext = {
 // Genesis wallet on the local `undeployed` network (holds all minted NIGHT).
 export const GENESIS_SEED = '0'.repeat(63) + '1';
 
-export const buildWallet = async (net: NetworkConfig, hexSeed: string): Promise<WalletContext> => {
+// opts.statePath: restore from (and later save to) a serialized wallet state, so a restart catches
+// up from that point instead of syncing from genesis. On Preprod a genesis sync can take over an hour.
+// The file is treated as a secret (it may contain key material): keep it under infra/secrets/.
+export type BuildWalletOptions = { statePath?: string };
+type SerializedWallet = { v: 1; networkId: string; shielded: string; unshielded: string; dust: string };
+
+export const buildWallet = async (net: NetworkConfig, hexSeed: string, opts: BuildWalletOptions = {}): Promise<WalletContext> => {
   const hd = HDWallet.fromSeed(Buffer.from(hexSeed, 'hex'));
   if (hd.type !== 'seedOk') throw new Error('invalid wallet seed');
   const derived = hd.hdWallet.selectAccount(0).selectRoles([Roles.Zswap, Roles.NightExternal, Roles.Dust]).deriveKeysAt(0);
@@ -62,11 +70,23 @@ export const buildWallet = async (net: NetworkConfig, hexSeed: string): Promise<
     txHistoryStorage: history(),
   };
 
+  let saved: SerializedWallet | undefined;
+  if (opts.statePath && existsSync(opts.statePath)) {
+    const parsed = JSON.parse(readFileSync(opts.statePath, 'utf8')) as SerializedWallet;
+    if (parsed.v === 1 && parsed.networkId === net.networkId) saved = parsed;
+  }
   const wallet = await WalletFacade.init({
     configuration: { ...shieldedConfig, ...unshieldedConfig, ...dustConfig },
-    shielded: () => ShieldedWallet(shieldedConfig).startWithSecretKeys(shieldedSecretKeys),
-    unshielded: () => UnshieldedWallet(unshieldedConfig).startWithPublicKey(UnshieldedPublicKey.fromKeyStore(unshieldedKeystore)),
-    dust: () => DustWallet(dustConfig).startWithSecretKey(dustSecretKey, ledger.LedgerParameters.initialParameters().dust),
+    shielded: () =>
+      saved ? ShieldedWallet(shieldedConfig).restore(saved.shielded) : ShieldedWallet(shieldedConfig).startWithSecretKeys(shieldedSecretKeys),
+    unshielded: () =>
+      saved
+        ? UnshieldedWallet(unshieldedConfig).restore(saved.unshielded)
+        : UnshieldedWallet(unshieldedConfig).startWithPublicKey(UnshieldedPublicKey.fromKeyStore(unshieldedKeystore)),
+    dust: () =>
+      saved
+        ? DustWallet(dustConfig).restore(saved.dust)
+        : DustWallet(dustConfig).startWithSecretKey(dustSecretKey, ledger.LedgerParameters.initialParameters().dust),
   });
   await wallet.start(shieldedSecretKeys, dustSecretKey);
   return { wallet, shieldedSecretKeys, dustSecretKey, unshieldedKeystore };
@@ -145,3 +165,17 @@ export const addDustFeesAndFinalize = async (ctx: WalletContext, tx: ledger.Fina
 
 export const deserializeFinalized = (bytes: Uint8Array): ledger.FinalizedTransaction =>
   ledger.Transaction.deserialize<ledger.SignatureEnabled, ledger.Proof, ledger.Binding>('signature', 'proof', 'binding', bytes);
+
+// Snapshot the wallet's sync state (atomic write, owner-only). Call after a sync and periodically.
+export const saveWalletState = async (ctx: WalletContext, net: NetworkConfig, path: string): Promise<void> => {
+  const [shielded, unshielded, dust] = await Promise.all([
+    ctx.wallet.shielded.serializeState(),
+    ctx.wallet.unshielded.serializeState(),
+    ctx.wallet.dust.serializeState(),
+  ]);
+  const body: SerializedWallet = { v: 1, networkId: net.networkId, shielded, unshielded, dust };
+  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, JSON.stringify(body), { mode: 0o600 });
+  renameSync(tmp, path);
+};
