@@ -11,8 +11,8 @@ import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-pri
 import { MuleNet, type MuleNetPrivateState } from '@mulenet/contract';
 import { fromHex } from '@mulenet/crypto';
 import { inMemoryPrivateStateProvider } from '@midnight-ntwrk/testkit-js';
-import { GuardianSecret, InstitutionSecret, deploymentName, loadPublicConfig, loadSecret, repoRoot, statePath } from '../src/config.js';
-import { GENESIS_SEED, buildWallet, deployMuleNet, ensureDust, joinAs, makeProviders, networks, readLedger, walletAndMidnightProvider } from '../src/index.js';
+import { GuardianSecret, InstitutionSecret, deploymentName, loadPublicConfig, loadSecret, repoRoot, statePath, walletStatePath } from '../src/config.js';
+import { GENESIS_SEED, saveWalletState, buildWallet, deployMuleNet, ensureDust, joinAs, makeProviders, networks, readLedger, walletAndMidnightProvider } from '../src/index.js';
 
 const pc = MuleNet.pureCircuits;
 const network = (process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'undeployed') as 'undeployed' | 'preprod';
@@ -27,7 +27,7 @@ const net = networks[network]();
 const deployerSeed = network === 'undeployed' ? GENESIS_SEED : process.env.DEPLOYER_SEED;
 if (!deployerSeed) throw new Error('DEPLOYER_SEED is required outside the local network');
 
-const wallet = await buildWallet(net, deployerSeed);
+const wallet = await buildWallet(net, deployerSeed, { statePath: walletStatePath(network, deployerSeed) });
 await ensureDust(wallet);
 // The deployer's private-state provider also stores the contract's maintenance-authority signing
 // key (ADR 0015). Off the local network it must persist: an encrypted level store under
@@ -99,5 +99,7 @@ const out = statePath(network);
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(state, null, 2) + '\n');
 log(`wrote ${out}`);
+const ws = walletStatePath(network, deployerSeed);
+if (ws) await saveWalletState(wallet, net, ws);
 await wallet.wallet.stop();
 process.exit(0);
