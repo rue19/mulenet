@@ -18,6 +18,18 @@ Built on [Midnight](https://midnight.network) (ledger 8, Compact 0.31.1). Apache
 | **Locally** | see [Run it locally](#run-it-locally) — one devnet, `npm run dev:up`, open `http://localhost:3000/judge` |
 | **Verify, don't trust** | `npx tsx verify/src/cli.ts deployment --address <addr>` checks the deployed circuits against the release, from public chain data only |
 
+### Screenshots
+
+From a fresh demo deployment on the local network (17 Oct 2026), captured by `scripts/screenshots.sh`.
+
+| | |
+|---|---|
+| [![Judge mode, all 11 steps](docs/media/judge-mode.png)](docs/media/judge-mode.png) | **Judge mode, completed.** Every step shows "as expected" or "refused as designed". |
+| [![Privacy X-ray](docs/media/xray-zero-hits.png)](docs/media/xray-zero-hits.png) | **Privacy X-ray.** The account judge mode just flagged, searched across every public transaction and contract state: 0 hits. |
+| [![Regulator](docs/media/regulator.png)](docs/media/regulator.png) | **Regulator.** A warrant with 1 of 2 approvals cannot be executed; the earlier one with 2 of 2 was. |
+| [![Transparency](docs/media/transparency.png)](docs/media/transparency.png) | **Transparency.** Per-epoch counts, the warrant log, governance and every guardian share release. |
+| [![On-chain state](docs/media/on-chain-state.png)](docs/media/on-chain-state.png) | **On-chain state.** The contract's whole public state, decoded: everything an observer can see. |
+
 ## How it works
 
 1. **Subject tags, not account numbers.** An account (`acct:v1:IN:HDFC0001234:…`, a UPI VPA, a UK account) is turned into a tag `T` by a **2-of-3 threshold OPRF** (RFC 9497 VOPRF, ristretto255). Oracles never see the account; nobody can compute `T` offline, so the account space can't be brute-forced.
