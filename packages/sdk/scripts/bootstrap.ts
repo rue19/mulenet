@@ -4,12 +4,14 @@
 // Usage: MN_PROOF_SERVER=http://127.0.0.1:6301 npx tsx scripts/bootstrap.ts [undeployed] [--epoch 300] [--ttl 2] [--k 2] [--skip bank-e]
 // --skip leaves institutions unregistered (the demo onboards bank-e live through governance).
 // MULENET_DEPLOYMENT=demo writes infra/state/<network>-demo.json instead of the main deployment.
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { MuleNet, type MuleNetPrivateState } from '@mulenet/contract';
 import { fromHex } from '@mulenet/crypto';
 import { inMemoryPrivateStateProvider } from '@midnight-ntwrk/testkit-js';
-import { GuardianSecret, InstitutionSecret, deploymentName, loadPublicConfig, loadSecret, statePath } from '../src/config.js';
+import { GuardianSecret, InstitutionSecret, deploymentName, loadPublicConfig, loadSecret, repoRoot, statePath } from '../src/config.js';
 import { GENESIS_SEED, buildWallet, deployMuleNet, ensureDust, joinAs, makeProviders, networks, readLedger, walletAndMidnightProvider } from '../src/index.js';
 
 const pc = MuleNet.pureCircuits;
@@ -27,7 +29,27 @@ if (!deployerSeed) throw new Error('DEPLOYER_SEED is required outside the local 
 
 const wallet = await buildWallet(net, deployerSeed);
 await ensureDust(wallet);
-const providers = makeProviders(net, await walletAndMidnightProvider(wallet), inMemoryPrivateStateProvider<string, MuleNetPrivateState>());
+// The deployer's private-state provider also stores the contract's maintenance-authority signing
+// key (ADR 0015). Off the local network it must persist: an encrypted level store under
+// infra/secrets/<network>/ (gitignored). Back that directory up offline.
+const deployerStore = () => {
+  const dir = resolve(repoRoot(), 'infra/secrets', network);
+  const pwFile = resolve(dir, 'deployer.json');
+  if (!existsSync(pwFile)) writeFileSync(pwFile, JSON.stringify({ storagePassword: `Dp-${randomBytes(18).toString('base64url')}-7Z` }) + '\n', { mode: 0o600 });
+  const { storagePassword } = JSON.parse(readFileSync(pwFile, 'utf8')) as { storagePassword: string };
+  return levelPrivateStateProvider<string, MuleNetPrivateState>({
+    midnightDbName: resolve(dir, 'deployer-state'),
+    privateStateStoreName: 'mulenet-deployer',
+    signingKeyStoreName: 'mulenet-deployer-keys',
+    privateStoragePasswordProvider: () => storagePassword,
+    accountId: wallet.unshieldedKeystore.getBech32Address().asString(),
+  } as never);
+};
+const providers = makeProviders(
+  net,
+  await walletAndMidnightProvider(wallet),
+  network === 'undeployed' ? inMemoryPrivateStateProvider<string, MuleNetPrivateState>() : deployerStore(),
+);
 
 const guardians = cfg.guardians.members.sort((a, b) => a.index - b.index);
 const epochLength = arg('epoch', 300);

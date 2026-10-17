@@ -1,7 +1,7 @@
 // Generates all consortium keys for one network (trusted dealer, ADR 0014):
 //   infra/config/<network>.json             public config (commit this)
 //   infra/secrets/<network>/<party>.json     one secret file per party, mode 0600 (gitignored)
-// Usage: npx tsx scripts/keygen.ts [undeployed|preprod] [--force]
+// Usage: npx tsx scripts/keygen.ts [undeployed|preprod] [--force] [--hosts local|docker]
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -12,7 +12,9 @@ import { configPath, secretPath, type PublicConfig } from '../src/config.js';
 const network = (process.argv[2] ?? 'undeployed') as PublicConfig['network'];
 const force = process.argv.includes('--force');
 const BANKS = ['bank-a', 'bank-b', 'bank-c', 'bank-d', 'bank-e'];
-const host = (svc: string, port: number) => (network === 'undeployed' ? `http://127.0.0.1:${port}` : `http://${svc}:${port}`);
+// --hosts docker: service names on an internal Docker network (VPS); default: 127.0.0.1 (host networking).
+const dockerHosts = process.argv.includes('--hosts') && process.argv[process.argv.indexOf('--hosts') + 1] === 'docker';
+const host = (svc: string, port: number) => (dockerHosts ? `http://${svc}:${port}` : `http://127.0.0.1:${port}`);
 
 if (existsSync(configPath(network)) && !force) {
   console.error(`${configPath(network)} exists; pass --force to regenerate (this invalidates every existing key).`);

@@ -1,0 +1,91 @@
+{
+  "network": "preprod",
+  "oracles": {
+    "threshold": 2,
+    "groupPublicKey": "c4775637970b950137d544136b705e9411c5c1497d21a4b09c3b6dd0c2dd8249",
+    "members": [
+      {
+        "index": 1,
+        "url": "http://127.0.0.1:7101",
+        "publicShare": "12225a7a3961ad9ea37ec46cb519e18445b5d50c80e52994ea074f4e83bb8568",
+        "signingPublicKey": "13cf10ae8fb11c42674ce608d94c9ecfcf0b21180fc0a2a79ba11b3c7b9d595d"
+      },
+      {
+        "index": 2,
+        "url": "http://127.0.0.1:7102",
+        "publicShare": "96276ffc39ebcf8bfdd89810c5c94a42d12327f50f15e225cd4f84978aaf4b3e",
+        "signingPublicKey": "021d1ce9b165ca796a8107b696006c4ad39e6443c9fd27d6c22de316f31ff490"
+      },
+      {
+        "index": 3,
+        "url": "http://127.0.0.1:7103",
+        "publicShare": "b83621ddbc51769013fc96b3186735755850c10703a440130067603c0e2e7921",
+        "signingPublicKey": "58760bed334e10501abf07d8cce5e9313d95c884cf6507d0110340aeee062292"
+      }
+    ]
+  },
+  "guardians": {
+    "threshold": 2,
+    "groupPublicKey": "ecfc084d07acdbce4e192d6e7dc9cf68b5aac59794b18c0eb8db319f9a899471",
+    "members": [
+      {
+        "index": 1,
+        "url": "http://127.0.0.1:7501",
+        "publicShare": "141d51e9747b80a41657be850ee7c2b062e31bdf25c3000e45b248cc45edf733",
+        "signingPublicKey": "a104e20a2489c7f2a19eca60c8c8fd2ae30fb5af0121a3adc29e6d503523a820",
+        "leaf": "265f2535b780059bce6dc19d5ba58d4a754494428e49860a9882230e0de476ad"
+      },
+      {
+        "index": 2,
+        "url": "http://127.0.0.1:7502",
+        "publicShare": "1cf8cba12d9494f7a50b56a155c320b4dcfbbd0860ed99064ab6bcacbc194163",
+        "signingPublicKey": "9a4b2e84523a3801f3cfaf87d64e82c94fd84ffce87309a7c96c25e3a5556b66",
+        "leaf": "001023d45f2daf1fa48bb5533863bdf2c3cdf369e0d918b3f390d5dfb9cfe889"
+      },
+      {
+        "index": 3,
+        "url": "http://127.0.0.1:7503",
+        "publicShare": "5823d8662018c0fa7643b25f273ae868bdc4bd074e58e28a174c701340dbb35c",
+        "signingPublicKey": "a9fd4028445b404fd16122e9cebe5e992362866722bbf28b6907bdc6e0e27a56",
+        "leaf": "404e81d39430874191b17e2ce0f86fbf1efc4c3660ccc5f90852d41ce52cddc0"
+      }
+    ]
+  },
+  "institutions": [
+    {
+      "id": "bank-a",
+      "url": "http://127.0.0.1:7401",
+      "signingPublicKey": "2915b037a0186e9edbb9584e4812c6e4c5487e756b1ebcb1e1dcbf277e1893e6"
+    },
+    {
+      "id": "bank-b",
+      "url": "http://127.0.0.1:7402",
+      "signingPublicKey": "e6ca0196bb19f80607848168ccdb8c48fa29ad0021e7e352c6648043a894b188"
+    },
+    {
+      "id": "bank-c",
+      "url": "http://127.0.0.1:7403",
+      "signingPublicKey": "f16374330541ec997266604dde824ebdd6470d0bdcf7d2266213e8cf760591be"
+    },
+    {
+      "id": "bank-d",
+      "url": "http://127.0.0.1:7404",
+      "signingPublicKey": "6802838eed68dcee0d8351e4dd59930cab2f65579bc21a794a2f5c23d6e33cbd"
+    },
+    {
+      "id": "bank-e",
+      "url": "http://127.0.0.1:7405",
+      "signingPublicKey": "631640b3fe9065646c65fcb194dcae8afad1f452620dbc0066cbbcceea69a97c"
+    }
+  ],
+  "regulator": {
+    "id": "regulator",
+    "signingPublicKey": "c47b61bf25349f5e7374ce099990356b72185c1a60cdcea249d8e210d2be69c9"
+  },
+  "relay": {
+    "url": "http://127.0.0.1:7200"
+  },
+  "sponsor": {
+    "url": "http://127.0.0.1:7300"
+  }
+}
