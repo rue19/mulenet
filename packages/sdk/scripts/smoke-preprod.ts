@@ -2,7 +2,8 @@
 // Preprod readiness (plan P6-0): endpoints answer, and each sponsor wallet is funded and
 // registered for DUST. With --register, unregistered NIGHT is registered for DUST generation.
 // Requires BLOCKFROST_PROJECT_ID (a Midnight Preprod project, "nightpreprod…") in the environment.
-// Usage: npx tsx scripts/smoke-preprod.ts [--register]
+// Usage: npx tsx scripts/smoke-preprod.ts [--register] [--sponsor N]
+// --sponsor N checks only sponsor N, so the three wallets can sync in parallel, one process each.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { balances, buildWallet, ensureDust, networks, redact, saveWalletState, waitForSync } from '../src/index.js';
@@ -38,7 +39,10 @@ const seeds = readFileSync(resolve(repoRoot(), 'infra/.env.sponsors.preprod'), '
   .split('\n')
   .filter((l) => l.startsWith('SPONSOR_SEED_'))
   .map((l) => l.split('=')[1].trim());
+const only = process.argv.includes('--sponsor') ? Number(process.argv[process.argv.indexOf('--sponsor') + 1]) : undefined;
+if (only !== undefined && !(only >= 0 && only < seeds.length)) throw new Error(`--sponsor must be 0..${seeds.length - 1}`);
 for (const [i, seed] of seeds.entries()) {
+  if (only !== undefined && i !== only) continue;
   const statePath = walletStatePath('preprod', seed)!;
   const w = await buildWallet(net, seed, { statePath });
   log(`sponsor ${i}: ${w.unshieldedKeystore.getBech32Address().asString()} syncing…`);
