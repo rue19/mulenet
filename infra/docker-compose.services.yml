@@ -10,13 +10,15 @@ x-service: &service
   restart: unless-stopped
   environment: &env
     MULENET_ROOT: /app
-    MULENET_NETWORK: undeployed
+    MULENET_NETWORK: ${MULENET_NETWORK:-undeployed}
     MULENET_DEPLOYMENT: ${MULENET_DEPLOYMENT:-main}
-    MN_PROOF_SERVER: http://127.0.0.1:6301
+    MN_PROOF_SERVER: ${MN_PROOF_SERVER:-http://127.0.0.1:6301}
+    # Preprod only; passed from the environment, never baked into an image or committed.
+    BLOCKFROST_PROJECT_ID: ${BLOCKFROST_PROJECT_ID:-}
   volumes:
-    - ../infra/config:/app/infra/config:ro
-    - ../infra/state:/app/infra/state:ro
-    - ../infra/secrets:/app/infra/secrets:ro
+    # infra/ holds public config, deployment state and (gitignored) secrets, incl. sponsor seeds.
+    # Read-write only for wallet-state snapshots under infra/secrets/<network>/wallet-state.
+    - ../infra:/app/infra
     - mulenet-data:/app/.data
 
 services:
@@ -45,11 +47,9 @@ services:
     build: { context: .., dockerfile: infra/Dockerfile, target: console }
     network_mode: host
     restart: unless-stopped
-    environment: { MULENET_ROOT: /app, MULENET_NETWORK: undeployed, MULENET_DEPLOYMENT: '${MULENET_DEPLOYMENT:-main}', HOSTNAME: 127.0.0.1 }
+    environment: { MULENET_ROOT: /app, MULENET_NETWORK: '${MULENET_NETWORK:-undeployed}', MULENET_DEPLOYMENT: '${MULENET_DEPLOYMENT:-main}', HOSTNAME: 127.0.0.1 }
     volumes:
-      - ../infra/config:/app/infra/config:ro
-      - ../infra/state:/app/infra/state:ro
-      - ../infra/secrets:/app/infra/secrets:ro
+      - ../infra:/app/infra:ro
 
 volumes:
   mulenet-data: {}
