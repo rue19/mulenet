@@ -6,7 +6,8 @@ import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-pri
 import { signRequest, type SigningKey } from '@mulenet/service-kit';
 import { joinAs, makeProviders, prepareSponsoredCall, readLedger, type CircuitId } from './contract.js';
 import type { NetworkConfig } from './networks.js';
-import { buildWallet, waitForSync, walletAndMidnightProvider, type WalletContext } from './wallet.js';
+import { buildWallet, saveWalletState, waitForSync, walletAndMidnightProvider, type WalletContext } from './wallet.js';
+import { walletStatePath } from './config.js';
 
 export type SponsoredChainOptions = {
   net: NetworkConfig;
@@ -34,8 +35,13 @@ export type SponsoredChain = {
 const sameBytes = (a?: Uint8Array, b?: Uint8Array) => (!a && !b) || (!!a && !!b && Buffer.from(a).equals(Buffer.from(b)));
 
 export const createSponsoredChain = async (o: SponsoredChainOptions): Promise<SponsoredChain> => {
-  const wallet: WalletContext = await buildWallet(o.net, o.walletSeed);
-  await waitForSync(wallet);
+  const statePath = walletStatePath(o.net.networkId, o.walletSeed);
+  const wallet: WalletContext = await buildWallet(o.net, o.walletSeed, { statePath });
+  await waitForSync(wallet, 3 * 3_600_000);
+  // Snapshot after the first sync and every 10 minutes, so restarts don't resync from genesis.
+  const snapshot = () => (statePath ? saveWalletState(wallet, o.net, statePath).catch(() => {}) : Promise.resolve());
+  await snapshot();
+  const snapshotTimer = statePath ? setInterval(() => void snapshot(), 600_000) : undefined;
 
   const level = levelPrivateStateProvider<string, MuleNetPrivateState>({
     midnightDbName: `${o.dataDir}/private-state`,
@@ -103,7 +109,11 @@ export const createSponsoredChain = async (o: SponsoredChainOptions): Promise<Sp
       if (fin.status !== 'SucceedEntirely') throw new ChainError(`transaction ${txId} did not succeed: ${fin.status}`);
       return { txId, blockHeight: fin.blockHeight };
     },
-    close: () => wallet.wallet.stop(),
+    close: async () => {
+      if (snapshotTimer) clearInterval(snapshotTimer);
+      await snapshot();
+      await wallet.wallet.stop();
+    },
   };
 };
 
