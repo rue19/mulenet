@@ -20,3 +20,4 @@ infra/state/*-demo.json
 apps/console/.next/
 apps/console/next-env.d.ts
 test-artifacts/
+.data-archive*/
