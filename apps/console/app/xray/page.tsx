@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { XrayForm } from '@/components/XrayForm';
 
+// Rendered per request, so the header shows the running network and deployment rather than the build's defaults.
+export const dynamic = 'force-dynamic';
+
 export default function Xray() {
   return (
     <div className="stack">
