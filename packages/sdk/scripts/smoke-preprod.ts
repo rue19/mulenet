@@ -4,8 +4,8 @@
 // Usage: npx tsx scripts/smoke-preprod.ts [--register]
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { balances, buildWallet, ensureDust, networks, redact, waitForSync } from '../src/index.js';
-import { repoRoot } from '../src/config.js';
+import { balances, buildWallet, ensureDust, networks, redact, saveWalletState, waitForSync } from '../src/index.js';
+import { repoRoot, walletStatePath } from '../src/config.js';
 
 const log = (...a: unknown[]) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...a);
 // A failure must never vanish: report anything uncaught, with its exit code.
@@ -38,7 +38,8 @@ const seeds = readFileSync(resolve(repoRoot(), 'infra/.env.sponsors.preprod'), '
   .filter((l) => l.startsWith('SPONSOR_SEED_'))
   .map((l) => l.split('=')[1].trim());
 for (const [i, seed] of seeds.entries()) {
-  const w = await buildWallet(net, seed);
+  const statePath = walletStatePath('preprod', seed)!;
+  const w = await buildWallet(net, seed, { statePath });
   log(`sponsor ${i}: ${w.unshieldedKeystore.getBech32Address().asString()} syncing…`);
   // Progress every 30 s, so a long first sync is visibly alive.
   const progress = w.wallet.state().subscribe({
@@ -47,12 +48,19 @@ for (const [i, seed] of seeds.entries()) {
       if (now - lastLog < 30_000) return;
       lastLog = now;
       log(`sponsor ${i}: synced=${st.isSynced} NIGHT=${balances(st).night} DUST=${balances(st).dust}`);
+      // Snapshot every 2 minutes, so an interrupted first sync resumes instead of restarting.
+      if (now - lastSave > 120_000) {
+        lastSave = now;
+        saveWalletState(w, net, statePath).catch((e) => log(`sponsor ${i}: snapshot failed: ${e instanceof Error ? e.message : String(e)}`));
+      }
     },
     error: (e) => log(`sponsor ${i}: wallet state error: ${e instanceof Error ? e.message : String(e)}`),
   });
   let lastLog = 0;
+  let lastSave = 0;
   const s = await waitForSync(w, 3 * 3_600_000);
   progress.unsubscribe();
+  await saveWalletState(w, net, statePath);
   const b = balances(s);
   const unregistered = s.unshielded?.availableCoins.filter((c) => !c.meta.registeredForDustGeneration).length ?? 0;
   log(`sponsor ${i}: NIGHT ${b.night}, DUST ${b.dust} (${b.dustCoins} spendable coins), ${unregistered} unregistered NIGHT UTXOs`);
@@ -60,6 +68,7 @@ for (const [i, seed] of seeds.entries()) {
     log(`sponsor ${i}: registering NIGHT for DUST generation…`);
     await ensureDust(w, 6 * 3_600_000);
     log(`sponsor ${i}: spendable DUST available`);
+    await saveWalletState(w, net, statePath);
   }
   await w.wallet.stop();
 }
