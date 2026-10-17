@@ -2,6 +2,7 @@
 // Consortium configuration (decision X6). Public material lives in infra/config/<network>.json
 // and is safe to commit; every secret lives in infra/secrets/<network>/<party>.json (gitignored,
 // mode 0600) and is loaded only by the party that owns it.
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
@@ -80,3 +81,10 @@ export const dataDir = (network: string) =>
 
 export type DeploymentState = { network: string; contractAddress: string; deployedAtBlock?: number; params?: Record<string, number> };
 export const loadDeployment = (network: string): DeploymentState => JSON.parse(readFileSync(statePath(network), 'utf8'));
+
+// Where a wallet's serialized sync state lives (secret: may contain key material). Off the local
+// network only; the local devnet syncs in seconds. Keyed by a hash of the seed, never the seed.
+export const walletStatePath = (network: string, seedHex: string): string | undefined =>
+  network === 'undeployed'
+    ? undefined
+    : resolve(repoRoot(), 'infra/secrets', network, 'wallet-state', `${createHash('sha256').update(seedHex).digest('hex').slice(0, 16)}.json`);
